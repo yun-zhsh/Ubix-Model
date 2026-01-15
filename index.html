@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubix Model - 财务自动化工具箱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tool-card:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans">
+
+    <nav class="bg-slate-900 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-500 p-2 rounded-lg">
+                    <i class="fas fa-chart-line text-xl"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight">UBIX <span class="text-indigo-400">MODEL</span></span>
+            </div>
+            <div class="text-sm text-slate-400">专业财务分析自动化解决方案</div>
+        </div>
+    </nav>
+
+    <header class="bg-white border-b">
+        <div class="max-w-6xl mx-auto px-4 py-12">
+            <h1 class="text-4xl font-extrabold text-slate-800 mb-4">财务分析师的数字工具箱</h1>
+            <p class="text-lg text-slate-600 max-w-2xl">
+                旨在通过技术手段自动化繁琐的财务工作流。从数据提取到模型核对，提升效率，降低错误。
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <div class="tool-card bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                <div class="text-blue-500 mb-4 text-3xl">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">PDF Table Extractor</h3>
+                <p class="text-slate-500 mb-6 flex-grow">自动识别 PDF 研报中的表格数据，支持在线预览并一键导出为标准 Excel 格式。</p>
+                <a href="./tools/pdf-table-extractor/index.html" class="bg-slate-800 text-white text-center py-2 rounded-lg hover:bg-slate-700 transition">
+                    打开工具
+                </a>
+            </div>
+
+            <div class="tool-card bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+                <div class="text-indigo-500 mb-4 text-3xl">
+                    <i class="fas fa-columns"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Excel Comparator</h3>
+                <p class="text-slate-500 mb-6 flex-grow">支持多列联合比对与滚动锁定，快速核对两份 Excel 数据之间的细微差异。</p>
+                <a href="./tools/excel-comparator/index.html" class="bg-slate-800 text-white text-center py-2 rounded-lg hover:bg-slate-700 transition">
+                    打开工具
+                </a>
+            </div>
+
+            <div class="bg-slate-100 p-6 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-center">
+                <div class="text-slate-400 mb-2 text-3xl">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-500">更多工具开发中</h3>
+                <p class="text-sm text-slate-400">正在集成 AI 盈余公告分析...</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="mt-12 py-8 border-t bg-white text-center text-slate-400 text-sm">
+        <p>&copy; 2026 Ubix Model Startup. All rights reserved.</p>
+        <p class="mt-2">Designed for Financial Analysts & Investment Professionals.</p>
+    </footer>
+
+</body>
+</html>
