@@ -1,588 +1,1113 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel 并排查看工具 - 启动器</title>
-    <!-- 引入 Tailwind CSS 以便快速构建美观的界面 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel 并排查看工具 - 启动器</title>
+    <!-- 引入 Tailwind CSS 以便快速构建美观的界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <!-- 启动器界面 -->
-    <div id="launcher-container" class="flex items-center justify-center h-full">
-        <div class="text-center p-8 bg-white rounded-xl shadow-lg">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">Excel 并排查看工具</h1>
-            <p class="text-gray-600 mb-6">点击下方按钮，在新窗口中启动工具。</p>
-            <button id="launch-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 shadow-md hover:shadow-lg">
-                启动查看工具
-            </button>
-        </div>
-    </div>
+    <!-- 启动器界面 -->
+    <div id="launcher-container" class="flex items-center justify-center h-full">
+        <div class="text-center p-8 bg-white rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Excel 并排查看工具</h1>
+            <p class="text-gray-600 mb-6">点击下方按钮，在新窗口中启动工具。</p>
+            <button id="launch-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 shadow-md hover:shadow-lg">
+                启动查看工具
+            </button>
+            <p id="launcher-error" class="text-red-500 text-sm mt-4 hidden"></p>
+        </div>
+    </div>
 
-    <script>
-        document.getElementById('launch-button').addEventListener('click', () => {
-            const viewerWindow = window.open('', 'ExcelViewer', 'resizable=yes,scrollbars=yes,width=1200,height=800');
+    <script>
+        document.getElementById('launch-button').addEventListener('click', () => {
+            const launcherError = document.getElementById('launcher-error');
+            launcherError.classList.add('hidden');
+            
+            // 获取可用的屏幕宽度和高度
+            const width = screen.availWidth;
+            const height = screen.availHeight;
+            
+            // 打开一个新窗口并使其最大化 (通过设置宽高和位置)
+            const viewerWindow = window.open('', 'ExcelViewer', `resizable=yes,scrollbars=yes,width=${width},height=${height},top=0,left=0`);
 
-            if (viewerWindow) {
-                // 这是为新弹出的窗口准备的完整 HTML 内容
-                const viewerHTML = `
-                    <!DOCTYPE html>
-                    <html lang="zh-CN">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Excel 并排查看工具</title>
-                        <script src="https://cdn.tailwindcss.com"><\/script>
-                        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
-                        <style>
-                            html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-                            #resize-container { display: flex; width: 100%; height: calc(100vh - 230px); border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; }
-                            .table-wrapper { overflow: auto; flex-grow: 1; flex-shrink: 1; background-color: white; }
-                            #resize-handle { flex: 0 0 8px; background-color: #e5e7eb; cursor: col-resize; transition: background-color 0.2s; }
-                            #resize-handle:hover { background-color: #93c5fd; }
-                            .table-container table { table-layout: fixed; width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-                            
-                            /* Base for all cells */
-                            .table-container th, .table-container td {
-                                border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left;
-                                /* Allow wrapping and break long words */
-                                white-space: normal;
-                                word-wrap: break-word;
-                            }
+            if (viewerWindow) {
+                // 这是为新弹出的窗口准备的完整 HTML 内容
+                const viewerHTML = `
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Excel 并排查看工具</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
+                    <style>
+                        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+                        /* 调整高度以匹配更短的标题栏 (180px -> 150px) */
+                        #resize-container { display: flex; width: 100%; height: calc(100vh - 150px); border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; }
+                        .table-wrapper { overflow: auto; flex-grow: 1; flex-shrink: 1; background-color: white; flex-basis: 50%; min-width: 0; }
+                        
+                        /* 隐藏拖拽条 */
+                        #resize-handle { display: none; }
+                        
+                        /* 表格布局为 fixed，不再设置 width: 100% */
+                        .table-container table { table-layout: fixed; border-collapse: collapse; font-size: 0.875rem; }
+                        
+                        /* Base for all cells */
+                        .table-container th, .table-container td {
+                            border: 1px solid #e2e8f0; 
+                            /* 压缩行高 */
+                            padding: 2px 12px; 
+                            text-align: left;
+                            /* Allow wrapping and break long words */
+                            white-space: normal;
+                            word-wrap: break-word;
+                            /* 优化长内容的显示 */
+                            max-width: 300px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
 
-                            /* Column Headers have special behavior */
-                            .table-container thead th {
-                                background-color: #f8fafc; font-weight: 600; position: sticky; top: 0; z-index: 20;
-                                /* Keep headers from wrapping, use ellipsis */
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                            }
+                        /* Column Headers have special behavior */
+                        .table-container thead th {
+                            background-color: #f8fafc; font-weight: 600; position: sticky; top: 0; z-index: 20;
+                            white-space: nowrap;
+                        }
 
-                            /* Row Number column (header part in body) */
-                            .table-container tbody th {
-                                background-color: #f8fafc; font-weight: 600; position: sticky; left: 0; z-index: 10;
-                                /* Fixed width for row numbers */
-                                width: 50px; min-width: 50px; max-width: 50px;
-                                text-align: center;
-                            }
-                            
-                            /* Top-left corner cell */
-                            .table-container thead th:first-child {
-                                left: 0; z-index: 30;
-                                /* Fixed width to match row number column */
-                                width: 50px; min-width: 50px; max-width: 50px;
-                            }
-                        </style>
-                    </head>
-                    <body class="bg-gray-100 font-sans">
-                        <div class="w-full p-4 md:p-6 h-full flex flex-col">
-                            <header class="text-center mb-4 flex-shrink-0">
-                                <h1 class="text-2xl font-bold text-gray-800">Excel 并排查看工具</h1>
-                                <p class="text-gray-500 mt-1">上传文件，选择标题行和比较列，然后点击比较按钮。</p>
-                                <button id="compare-button" class="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>开始比较</button>
-                            </header>
+                        /* 允许 Key Column (第二列) 的表头换行 */
+                        .table-container thead th:nth-child(2) {
+                            white-space: normal;
+                        }
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-shrink-0">
-                                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <label for="file-upload-1" class="flex-grow inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格一</label>
-                                        <select id="sheet-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
-                                    </div>
-                                    <p id="filename-1" class="text-sm text-gray-500 truncate"></p>
-                                    <div class="flex items-center gap-2">
-                                        <select id="header-row-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
-                                        <select id="compare-col-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择比较列</option></select>
-                                    </div>
-                                    <input id="file-upload-1" type="file" class="hidden" accept=".xlsx, .xls, .csv">
-                                </div>
-                                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <label for="file-upload-2" class="flex-grow inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格二</label>
-                                        <select id="sheet-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
-                                    </div>
-                                    <p id="filename-2" class="text-sm text-gray-500 truncate"></p>
-                                     <div class="flex items-center gap-2">
-                                        <select id="header-row-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
-                                        <select id="compare-col-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择比较列</option></select>
-                                    </div>
-                                    <input id="file-upload-2" type="file" class="hidden" accept=".xlsx, .xls, .csv">
-                                </div>
-                            </div>
+                        /* Row Number column (header part in body) */
+                        .table-container tbody th {
+                            background-color: #f8fafc; font-weight: 600; position: sticky; left: 0; z-index: 10;
+                            width: 50px; min-width: 50px; max-width: 50px;
+                            text-align: center;
+                        }
+                        
+                        /* Top-left corner cell */
+                        .table-container thead th:first-child {
+                            left: 0; z-index: 30;
+                            width: 50px; min-width: 50px; max-width: 50px;
+                        }
 
-                            <div id="resize-container">
-                                <div id="table-output-1" class="table-wrapper p-2 rounded-l-lg"><div class="flex items-center justify-center h-full text-gray-400">表格一内容</div></div>
-                                <div id="resize-handle"></div>
-                                <div id="table-output-2" class="table-wrapper p-2 rounded-r-lg"><div class="flex items-center justify-center h-full text-gray-400">表格二内容</div></div>
-                            </div>
-                        </div>
-
-                        <script>
-                            function initializeViewer() {
-                                const viewerState = {
-                                    '1': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareColIndex: null, highlightedCells: new Map() },
-                                    '2': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareColIndex: null, highlightedCells: new Map() }
-                                };
-                                
-                                const linkState = { sheetLinked: false, headerLinked: false };
-
-                                const elements = { compareButton: document.getElementById('compare-button') };
-                                ['1', '2'].forEach(side => {
-                                    elements[side] = {
-                                        fileUpload: document.getElementById(\`file-upload-\${side}\`),
-                                        sheetSelect: document.getElementById(\`sheet-select-\${side}\`),
-                                        headerRowSelect: document.getElementById(\`header-row-select-\${side}\`),
-                                        compareColSelect: document.getElementById(\`compare-col-select-\${side}\`),
-                                        filename: document.getElementById(\`filename-\${side}\`),
-                                        tableOutput: document.getElementById(\`table-output-\${side}\`)
-                                    };
-                                });
-
-                                const sanitize = (val) => String(val || "").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-                                
-                                const checkCanCompare = () => {
-                                    elements.compareButton.disabled = !(viewerState['1'].selectedCompareColIndex !== null && viewerState['2'].selectedCompareColIndex !== null);
-                                };
-
-                                const makeTableResizable = (table) => {
-                                    const headerCells = table.querySelectorAll('thead th');
-                                    headerCells.forEach(th => {
-                                        if (th.cellIndex === 0) return;
-
-                                        th.style.position = 'relative';
-
-                                        const resizer = document.createElement('div');
-                                        resizer.style.position = 'absolute';
-                                        resizer.style.top = '0';
-                                        resizer.style.right = '-2.5px';
-                                        resizer.style.width = '5px';
-                                        resizer.style.bottom = '0';
-                                        resizer.style.cursor = 'col-resize';
-                                        resizer.style.zIndex = '1';
-                                        th.appendChild(resizer);
-
-                                        const mouseDownHandler = (e) => {
-                                            e.preventDefault();
-                                            const startX = e.pageX;
-                                            const startW = th.offsetWidth;
-
-                                            const mouseMoveHandler = (me) => {
-                                                const newWidth = startW + (me.pageX - startX);
-                                                if (newWidth > 20) { // Minimum width set to 20px
-                                                    th.style.width = newWidth + 'px';
-                                                }
-                                            };
-                                            const mouseUpHandler = () => {
-                                                document.removeEventListener('mousemove', mouseMoveHandler);
-                                                document.removeEventListener('mouseup', mouseUpHandler);
-                                            };
-                                            document.addEventListener('mousemove', mouseMoveHandler);
-                                            document.addEventListener('mouseup', mouseUpHandler);
-                                        };
-                                        resizer.addEventListener('mousedown', mouseDownHandler);
-                                    });
-                                };
-
-                                const renderTable = (side) => {
-                                    const state = viewerState[side];
-                                    const el = elements[side];
-                                    if (!state.fullData) {
-                                        el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据</div>\`;
-                                        return;
-                                    }
-                                    
-                                    const data = state.fullData;
-                                    const headerIndex = state.selectedHeaderIndex;
-                                    const tableData = data.slice(headerIndex);
-                                    if (tableData.length === 0) {
-                                        el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据显示</div>\`;
-                                        return;
-                                    }
-
-                                    const headerRow = tableData[0];
-                                    const bodyRows = tableData.slice(1);
-                                    const maxCols = Math.max(headerRow.length, ...bodyRows.map(r => r.length));
-
-                                    let html = '<div class="table-container"><table><colgroup>';
-                                    // Add colgroup for width control
-                                    html += '<col style="width: 50px; min-width: 50px;">'; // For row number column
-                                    for (let i = 0; i < maxCols; i++) {
-                                        html += '<col>';
-                                    }
-                                    html += '</colgroup>';
-
-                                    html += '<thead><tr><th></th>';
-                                    for (let i = 0; i < maxCols; i++) html += \`<th>\${sanitize(headerRow[i])}</th>\`;
-                                    html += '</tr></thead><tbody>';
-
-                                    bodyRows.forEach((row, rowIndex) => {
-                                        const originalRowIndex = headerIndex + 1 + rowIndex;
-                                        const highlightMap = state.highlightedCells.get(originalRowIndex);
-                                        html += \`<tr><th>\${originalRowIndex + 1}</th>\`;
-                                        for (let i = 0; i < maxCols; i++) {
-                                            const color = highlightMap ? highlightMap.get(i) : null;
-                                            let style = '';
-                                            if (color === 'green') {
-                                                style = 'background-color: #dcfce7;';
-                                            } else if (color === 'red') {
-                                                style = 'background-color: #fee2e2;';
-                                            }
-                                            html += \`<td style="\${style}">\${sanitize(row[i])}</td>\`;
-                                        }
-                                        html += '</tr>';
-                                    });
-                                    html += '</tbody></table></div>';
-                                    el.tableOutput.innerHTML = html;
-
-                                    const table = el.tableOutput.querySelector('table');
-                                    if (table) {
-                                        makeTableResizable(table);
-                                    }
-                                };
-
-                                const updateColumnSelector = (side) => {
-                                    const state = viewerState[side];
-                                    const el = elements[side];
-                                    const headerRow = state.fullData ? state.fullData[state.selectedHeaderIndex] : [];
-                                    
-                                    el.compareColSelect.innerHTML = '<option value="">选择比较列</option>';
-                                    if (headerRow) {
-                                        headerRow.forEach((cell, index) => {
-                                            if (cell) el.compareColSelect.add(new Option(sanitize(cell), index));
-                                        });
-                                    }
-                                    el.compareColSelect.disabled = !headerRow || headerRow.length === 0;
-                                    state.selectedCompareColIndex = null;
-                                    checkCanCompare();
-                                };
-
-                                const loadSheetData = (side, sheetName) => {
-                                    const state = viewerState[side];
-                                    const el = elements[side];
-                                    const worksheet = state.workbook.Sheets[sheetName];
-                                    
-                                    const sheetRef = worksheet['!ref'];
-                                    if (!sheetRef) {
-                                        state.fullData = []; state.rawData = [];
-                                        renderTable(side); updateColumnSelector(side);
-                                        return;
-                                    }
-                                    const range = XLSX.utils.decode_range(sheetRef);
-                                    const formattedData = [];
-                                    const rawValueData = [];
-
-                                    for (let R = range.s.r; R <= range.e.r; ++R) {
-                                        const formattedRow = [];
-                                        const rawRow = [];
-                                        for (let C = range.s.c; C <= range.e.c; ++C) {
-                                            const cell_address = { c: C, r: R };
-                                            const cell_ref = XLSX.utils.encode_cell(cell_address);
-                                            const cell = worksheet[cell_ref];
-                                            if (cell) {
-                                                formattedRow[C] = cell.w !== undefined ? cell.w : cell.v;
-                                                rawRow[C] = cell.v;
-                                            } else {
-                                                formattedRow[C] = "";
-                                                rawRow[C] = "";
-                                            }
-                                        }
-                                        formattedData.push(formattedRow);
-                                        rawValueData.push(rawRow);
-                                    }
-
-                                    state.fullData = formattedData;
-                                    state.rawData = rawValueData;
-                                    
-                                    el.headerRowSelect.innerHTML = '';
-                                    const rowCount = Math.min(20, state.fullData.length);
-                                    for(let i = 0; i < rowCount; i++) el.headerRowSelect.add(new Option(\`第 \${i + 1} 行\`, i));
-                                    el.headerRowSelect.disabled = false;
-                                    
-                                    state.selectedHeaderIndex = 0;
-                                    el.headerRowSelect.value = 0;
-                                    
-                                    renderTable(side);
-                                    updateColumnSelector(side);
-                                };
-                                
-                                const handleFile = (e, side) => {
-                                    const file = e.target.files[0];
-                                    const state = viewerState[side];
-                                    const el = elements[side];
-                                    if (!file) return;
-
-                                    el.filename.textContent = \`已选择: \${file.name}\`;
-                                    el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-500">正在加载...</div>\`;
-                                    [el.sheetSelect, el.headerRowSelect, el.compareColSelect].forEach(elem => { elem.disabled = true; });
-                                    el.headerRowSelect.innerHTML = '<option>...</option>';
-                                    el.compareColSelect.innerHTML = '<option>...</option>';
+                        /* --- 自定义多选下拉框样式 --- */
+                        .custom-col-select-container {
+                            position: relative;
+                            width: 100%;
+                            flex-grow: 1;
+                        }
+                        .custom-col-select-button {
+                            display: block;
+                            width: 100%;
+                            padding: 0.5rem;
+                            border: 1px solid #d1d5db;
+                            border-radius: 0.375rem;
+                            background-color: #f9fafb;
+                            text-align: left;
+                            cursor: pointer;
+                        }
+                        .custom-col-select-button:disabled {
+                            background-color: #e5e7eb;
+                            cursor: not-allowed;
+                        }
+                        .custom-col-select-dropdown {
+                            position: absolute;
+                            width: 100%;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            background-color: white;
+                            border: 1px solid #d1d5db;
+                            border-top: none;
+                            border-radius: 0 0 0.375rem 0.375rem;
+                            z-index: 50;
+                            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                        }
+                        .custom-col-select-option {
+                            display: flex;
+                            align-items: center;
+                            padding: 0.5rem;
+                            cursor: pointer;
+                            border-bottom: 1px solid #f3f4f6;
+                        }
+                        .custom-col-select-option:hover {
+                            background-color: #f3f4f6;
+                        }
+                        .custom-col-select-option.selected {
+                            background-color: #e0e7ff;
+                        }
+                        .custom-col-select-order {
+                            font-weight: bold;
+                            color: #dc2626; /* red-600 */
+                            width: 2em;
+                            text-align: center;
+                            flex-shrink: 0;
+                        }
+                        .custom-col-select-text {
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                        }
+                        
+                    </style>
+                </head>
+                <body class="bg-gray-100">
+                    <div class="w-full p-4 md:p-6 h-full flex flex-col">
+                        <!-- 修改：移除 text-center，让 flex 容器来控制居中 -->
+                        <header class="mb-4 flex-shrink-0">
+                            <!-- 修改：添加 flex 容器将标题和提示语放在一行 -->
+                            <div class="flex justify-center items-baseline gap-3">
+                                <h1 class="text-2xl font-bold text-gray-800">Excel 并排查看工具</h1>
+                                <p class="text-gray-500 text-sm">上传文件，选择标题行和比较列，然后点击比较按钮。</p>
+                            </div>
+                            <div class="flex justify-center items-center gap-4 mt-2">
+                                <button id="compare-button" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>开始比较</button>
+                                
+                                <!-- 滚动锁定开关 -->
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="scroll-lock" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500">
+                                    <label for="scroll-lock" class="ml-2 text-sm font-medium text-gray-700">滚动锁定</label>
+                                </div>
+                            </div>
+                        </header>
+                        <!-- 布局修改结束 -->
 
 
-                                    const reader = new FileReader();
-                                    reader.onload = (event) => {
-                                        try {
-                                            const data = new Uint8Array(event.target.result);
-                                            state.workbook = XLSX.read(data, { type: 'array' });
-                                            
-                                            // Reset link state on new file upload
-                                            linkState.sheetLinked = false;
-                                            linkState.headerLinked = false;
+                        <!-- 修改：控件布局 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-shrink-0">
+                            <!-- Side 1: New Layout -->
+                            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
+                                <div class="flex items-center gap-2">
+                                    <label for="file-upload-1" class="flex-shrink-0 inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格一</label>
+                                    <select id="sheet-select-1" class="flex-shrink-0 w-auto p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
+                                    <select id="header-row-select-1" class="flex-shrink-0 w-auto p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
+                                    
+                                    <!-- MAJOR CHANGE: Replaced select with custom div structure -->
+                                    <div id="compare-col-select-1" class="custom-col-select-container">
+                                        <button id="compare-col-button-1" class="custom-col-select-button" disabled>选择比较列</button>
+                                        <div id="compare-col-dropdown-1" class="custom-col-select-dropdown hidden"></div>
+                                    </div>
+                                </div>
+                                <p id="filename-1" class="text-sm text-gray-500 truncate hidden"></p> <!-- 隐藏文件名 -->
+                                <input id="file-upload-1" type="file" class="hidden" accept=".xlsx, .xls, .csv">
+                            </div>
+                            
+                            <!-- Side 2: New Layout -->
+                            <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
+                                <div class="flex items-center gap-2">
+                                    <label for="file-upload-2" class="flex-shrink-0 inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格二</label>
+                                    <select id="sheet-select-2" class="flex-shrink-0 w-auto p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
+                                    <select id="header-row-select-2" class="flex-shrink-0 w-auto p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
+                                    
+                                    <!-- MAJOR CHANGE: Replaced select with custom div structure -->
+                                    <div id="compare-col-select-2" class="custom-col-select-container">
+                                        <button id="compare-col-button-2" class="custom-col-select-button" disabled>选择比较列</button>
+                                        <div id="compare-col-dropdown-2" class="custom-col-select-dropdown hidden"></div>
+                                    </div>
+                                </div>
+                                <p id="filename-2" class="text-sm text-gray-500 truncate hidden"></p> <!-- 隐藏文件名 -->
+                                <input id="file-upload-2" type="file" class="hidden" accept=".xlsx, .xls, .csv">
+                            </div>
+                        </div>
+                        <!-- 布局修改结束 -->
 
-                                            el.sheetSelect.innerHTML = '';
-                                            if (state.workbook.SheetNames.length === 0) throw new Error("文件中没有找到工作表。");
 
-                                            state.workbook.SheetNames.forEach(name => el.sheetSelect.add(new Option(name, name)));
-                                            el.sheetSelect.disabled = false;
-                                            loadSheetData(side, state.workbook.SheetNames[0]);
-                                        } catch (error) {
-                                            console.error("File processing failed:", error);
-                                            el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-red-500">\${error.message}</div>\`;
-                                        }
-                                    };
-                                    reader.readAsArrayBuffer(file);
-                                };
+                        <div id="resize-container">
+                            <div id="table-output-1" class="table-wrapper p-2 rounded-l-lg"><div class="flex items-center justify-center h-full text-gray-400">表格一内容</div></div>
+                            <div id="resize-handle"></div>
+                            <div id="table-output-2" class="table-wrapper p-2 rounded-r-lg"><div class="flex items-center justify-center h-full text-gray-400">表格二内容</div></div>
+                        </div>
+                        
+                    </div>
 
-                                const startComparison = () => {
-                                    ['1', '2'].forEach(s => viewerState[s].highlightedCells.clear());
-                                    const state1 = viewerState['1'], state2 = viewerState['2'];
-                                    const data1 = state1.rawData.slice(state1.selectedHeaderIndex + 1);
-                                    const data2 = state2.rawData.slice(state2.selectedHeaderIndex + 1);
-                                    const col1 = state1.selectedCompareColIndex, col2 = state2.selectedCompareColIndex;
+                    <script>
+                        function initializeViewer() {
+                            const viewerState = {
+                                '1': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareCols: [], highlightedCells: new Map(), lastScrollTop: 0, maxCols: 0 },
+                                '2': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareCols: [], highlightedCells: new Map(), lastScrollTop: 0, maxCols: 0 }
+                            };
+                            
+                            const linkState = { sheetLinked: false, headerLinked: false };
+                            let isSyncingScroll = false; // 滚动同步锁
 
-                                    const addHighlight = (side, rowIndex, colIndex, color) => {
-                                        const state = viewerState[side];
-                                        const originalRowIndex = state.selectedHeaderIndex + 1 + rowIndex;
-                                        if (!state.highlightedCells.has(originalRowIndex)) {
-                                            state.highlightedCells.set(originalRowIndex, new Map());
-                                        }
-                                        state.highlightedCells.get(originalRowIndex).set(colIndex, color);
-                                    };
+                            const elements = { 
+                                compareButton: document.getElementById('compare-button'),
+                                scrollLock: document.getElementById('scroll-lock')
+                            };
+                            ['1', '2'].forEach(side => {
+                                elements[side] = {
+                                    fileUpload: document.getElementById(\`file-upload-\${side}\`),
+                                    sheetSelect: document.getElementById(\`sheet-select-\${side}\`),
+                                    headerRowSelect: document.getElementById(\`header-row-select-\${side}\`),
+                                    compareColContainer: document.getElementById(\`compare-col-select-\${side}\`),
+                                    compareColButton: document.getElementById(\`compare-col-button-\${side}\`),
+                                    compareColDropdown: document.getElementById(\`compare-col-dropdown-\${side}\`),
+                                    filename: document.getElementById(\`filename-\${side}\`),
+                                    tableOutput: document.getElementById(\`table-output-\${side}\`)
+                                };
+                            });
 
-                                    const isBlank = (row, dataColIndex) => {
-                                        const key = row ? row[0] : undefined;
-                                        const data = row ? row[dataColIndex] : undefined;
-                                        const isKeyBlank = key === null || key === undefined || String(key).trim() === '';
-                                        const isDataBlank = data === null || data === undefined || String(data).trim() === '';
-                                        return isKeyBlank && isDataBlank;
-                                    };
+                            const sanitize = (val) => String(val || "").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                            
+                            /**
+                             * (新增) 检查一个字符串是否是另一个字符串的子序列 (子集)
+                             * "ABD" 是 "ABCDE" 的子序列
+                             */
+                            const isSubsequence = (str1, str2) => {
+                                const s1 = String(str1 || "");
+                                const s2 = String(str2 || "");
 
-                                    const claimed1 = new Set(), claimed2 = new Set();
-                                    
-                                    data1.forEach((row, index) => { if (isBlank(row, col1)) claimed1.add(index); });
-                                    data2.forEach((row, index) => { if (isBlank(row, col2)) claimed2.add(index); });
+                                if (s1.length === 0) return true;
+                                if (s2.length === 0) return false;
 
-                                    // Pass 1: Perfect Matches
-                                    for (let i = 0; i < data1.length; i++) {
-                                        if (claimed1.has(i)) continue;
-                                        for (let j = 0; j < data2.length; j++) {
-                                            if (claimed2.has(j)) continue;
-                                            if (data1[i][0] === data2[j][0] && data1[i][col1] === data2[j][col2]) {
-                                                addHighlight('1', i, 0, 'green'); addHighlight('1', i, col1, 'green');
-                                                addHighlight('2', j, 0, 'green'); addHighlight('2', j, col2, 'green');
-                                                claimed1.add(i);
-                                                claimed2.add(j);
-                                                break;
-                                            }
-                                        }
-                                    }
+                                let shortStr, longStr;
+                                if (s1.length < s2.length) {
+                                    shortStr = s1;
+                                    longStr = s2;
+                                } else {
+                                    shortStr = s2;
+                                    longStr = s1;
+                                }
+                                
+                                let i = 0; // longStr 的指针
+                                let j = 0; // shortStr 的指针
 
-                                    // Pass 2: Key Match, Data Mismatch
-                                    for (let i = 0; i < data1.length; i++) {
-                                        if (claimed1.has(i)) continue;
-                                        for (let j = 0; j < data2.length; j++) {
-                                            if (claimed2.has(j)) continue;
-                                            if (data1[i][0] === data2[j][0]) {
-                                                addHighlight('1', i, 0, 'green'); addHighlight('1', i, col1, 'red');
-                                                addHighlight('2', j, 0, 'green'); addHighlight('2', j, col2, 'red');
-                                                claimed1.add(i);
-                                                claimed2.add(j);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Pass 3: Data Match, Key Mismatch
-                                    for (let i = 0; i < data1.length; i++) {
-                                        if (claimed1.has(i)) continue;
-                                        for (let j = 0; j < data2.length; j++) {
-                                            if (claimed2.has(j)) continue;
-                                            const dataValue1 = data1[i][col1];
-                                            if (dataValue1 !== undefined && dataValue1 !== null && String(dataValue1).trim() !== '' && dataValue1 === data2[j][col2]) {
-                                                addHighlight('1', i, 0, 'red');   addHighlight('1', i, col1, 'green');
-                                                addHighlight('2', j, 0, 'red');   addHighlight('2', j, col2, 'green');
-                                                claimed1.add(i);
-                                                claimed2.add(j);
-                                                break;
-                                            }
-                                        }
-                                    }
+                                while (i < longStr.length && j < shortStr.length) {
+                                    if (longStr[i] === shortStr[j]) {
+                                        j++;
+                                    }
+                                    i++;
+                                }
+                                
+                                // 如果 j 走完了 shortStr，说明 shortStr 是 longStr 的子序列
+                                return j === shortStr.length;
+                            };
 
-                                    // Pass 4: No Matches
-                                    for (let i = 0; i < data1.length; i++) {
-                                        if (!claimed1.has(i)) {
-                                            addHighlight('1', i, 0, 'red'); addHighlight('1', i, col1, 'red');
-                                        }
-                                    }
-                                    for (let j = 0; j < data2.length; j++) {
-                                        if (!claimed2.has(j)) {
-                                            addHighlight('2', j, 0, 'red'); addHighlight('2', j, col2, 'red');
-                                        }
-                                    }
+                            /**
+                             * 检查一个行在指定的所有列上是否都为空。
+                             */
+                            const isRowBlank = (row, cols) => {
+                                if (!row) return true; 
+                                for (const colIndex of cols) {
+                                    const val = row[colIndex];
+                                    if (val !== null && val !== undefined && String(val).trim() !== '') {
+                                        return false; 
+                                    }
+                                }
+                                return true; 
+                            };
 
-                                    renderTable('1');
-                                    renderTable('2');
-                                };
-                                
-                                const handleCustomCopy = (event) => {
-                                    const currentDoc = event.currentTarget.ownerDocument;
-                                    const currentWin = currentDoc.defaultView;
-                                    const selection = currentWin.getSelection();
-                                
-                                    if (!selection.rangeCount || selection.isCollapsed) return;
-                                
-                                    event.preventDefault();
-                                    event.stopImmediatePropagation();
-                                
-                                    const range = selection.getRangeAt(0);
-                                    const savedRange = range.cloneRange();
-                                
-                                    const container = currentDoc.createElement('div');
-                                    container.appendChild(range.cloneContents());
-                                
-                                    let textToCopy;
-                                    if (container.querySelector('tr')) {
-                                        const rows = [];
-                                        container.querySelectorAll('tr').forEach(tr => {
-                                            const cells = [];
-                                            tr.querySelectorAll('th, td').forEach(cell => {
-                                                cells.push(cell.textContent);
-                                            });
-                                            rows.push(cells.join('\\t'));
-                                        });
-                                        textToCopy = rows.join('\\n');
-                                    } else {
-                                        textToCopy = selection.toString();
-                                    }
-                                
-                                    const textArea = currentDoc.createElement('textarea');
-                                    textArea.value = textToCopy;
-                                    textArea.style.position = 'fixed';
-                                    textArea.style.top = '-9999px';
-                                    textArea.style.left = '-9999px';
-                                    currentDoc.body.appendChild(textArea);
-                                    textArea.focus();
-                                    textArea.select();
-                                    try {
-                                        const successful = currentDoc.execCommand('copy');
-                                        if (!successful) {
-                                           console.error('execCommand was not successful');
-                                        }
-                                    } catch (err) {
-                                        console.error('无法复制: ', err);
-                                    }
-                                    currentDoc.body.removeChild(textArea);
+                            const checkCanCompare = () => {
+                                const len1 = viewerState['1'].selectedCompareCols.length;
+                                const len2 = viewerState['2'].selectedCompareCols.length;
+                                // 必须大于0，且两侧数量相等
+                                elements.compareButton.disabled = !(len1 > 0 && len1 === len2);
+                            };
 
-                                    // Restore the selection after the copy operation
-                                    selection.removeAllRanges();
-                                    selection.addRange(savedRange);
-                                };
+                            const autoSizeColumns = (table) => {
+                                const headerCells = table.querySelectorAll('thead th');
+                                const colgroupCols = table.querySelectorAll('col');
+                                if (headerCells.length === 0 || colgroupCols.length === 0) return;
 
-                                ['1', '2'].forEach(side => {
-                                    const el = elements[side];
-                                    el.fileUpload.addEventListener('change', (e) => handleFile(e, side));
-                                    
-                                    el.sheetSelect.addEventListener('change', (e) => {
-                                        loadSheetData(side, e.target.value);
-                                        if (!linkState.sheetLinked) {
-                                            const otherSide = side === '1' ? '2' : '1';
-                                            if (viewerState[otherSide].workbook) {
-                                                const otherSelect = elements[otherSide].sheetSelect;
-                                                if (e.target.selectedIndex < otherSelect.options.length) {
-                                                    otherSelect.selectedIndex = e.target.selectedIndex;
-                                                    loadSheetData(otherSide, otherSelect.value);
-                                                }
-                                            }
-                                            linkState.sheetLinked = true;
-                                        }
-                                    });
+                                colgroupCols.forEach(col => col.style.width = ''); 
+                                table.style.width = ''; 
 
-                                    el.headerRowSelect.addEventListener('change', (e) => {
-                                        const selectedIndex = e.target.selectedIndex;
-                                        viewerState[side].selectedHeaderIndex = parseInt(e.target.value, 10);
-                                        renderTable(side);
-                                        updateColumnSelector(side);
+                                table.style.tableLayout = 'auto'; 
+                                
+                                let totalTableWidth = 0;
 
-                                        if (!linkState.headerLinked) {
-                                            const otherSide = side === '1' ? '2' : '1';
-                                            if (viewerState[otherSide].fullData) {
-                                                const otherSelect = elements[otherSide].headerRowSelect;
-                                                if (selectedIndex < otherSelect.options.length) {
-                                                    otherSelect.selectedIndex = selectedIndex;
-                                                    viewerState[otherSide].selectedHeaderIndex = parseInt(otherSelect.value, 10);
-                                                    renderTable(otherSide);
-                                                    updateColumnSelector(otherSide);
-                                                }
-                                            }
-                                            linkState.headerLinked = true;
-                                        }
-                                    });
+                                for (let i = 0; i < headerCells.length; i++) {
+                                    const th = headerCells[i];
+                                    const col = colgroupCols[i];
+                                    
+                                    let finalWidth = 50; 
 
-                                    el.compareColSelect.addEventListener('change', (e) => {
-                                        const val = e.target.value;
-                                        viewerState[side].selectedCompareColIndex = val === "" ? null : parseInt(val, 10);
-                                        checkCanCompare();
-                                    });
-                                    el.tableOutput.addEventListener('copy', handleCustomCopy);
-                                });
-                                
-                                elements.compareButton.addEventListener('click', startComparison);
+                                    if (i === 0) {
+                                        finalWidth = 50;
+                                    } else {
+                                        const originalWhiteSpace = th.style.whiteSpace;
+                                        if (i > 1) {
+                                            th.style.whiteSpace = 'nowrap';
+                                        }
+                                        
+                                        const naturalWidth = parseFloat(window.getComputedStyle(th).width);
+                                        
+                                        if (i > 1) {
+                                            th.style.whiteSpace = originalWhiteSpace;
+                                        }
 
-                                // --- Resizing Logic ---
-                                const handle = document.getElementById('resize-handle');
-                                const leftPane = document.getElementById('table-output-1');
-                                
-                                function onMouseMove(e) {
-                                    const container = document.getElementById('resize-container');
-                                    let leftWidth = ((e.clientX - container.getBoundingClientRect().left) / container.offsetWidth) * 100;
-                                    if (leftWidth < 10) leftWidth = 10;
-                                    if (leftWidth > 90) leftWidth = 90;
-                                    leftPane.style.flexBasis = \`\${leftWidth}%\`;
-                                }
+                                        finalWidth = Math.max(naturalWidth, 50); 
+                                    }
+                                    
+                                    col.style.width = \`\${finalWidth}px\`;
+                                    totalTableWidth += finalWidth;
+                                }
+                                
+                                table.style.width = \`\${totalTableWidth}px\`;
+                                table.style.tableLayout = 'fixed'; 
+                            };
 
-                                function onMouseUp() {
-                                    document.removeEventListener('mousemove', onMouseMove);
-                                    document.removeEventListener('mouseup', onMouseUp);
-                                }
+                            const makeTableResizable = (table) => {
+                                const headerCells = table.querySelectorAll('thead th');
+                                headerCells.forEach(th => {
+                                    if (th.cellIndex === 0) return; 
 
-                                handle.addEventListener('mousedown', (e) => {
-                                    e.preventDefault();
-                                    document.addEventListener('mousemove', onMouseMove);
-                                    document.addEventListener('mouseup', onMouseUp);
-                                });
-                            }
-                            
-                            initializeViewer();
-                        <\/script>
-                    </body>
-                    </html>
-                `;
+                                    th.style.position = 'relative';
 
-                viewerWindow.document.write(viewerHTML);
-                viewerWindow.document.close();
-                viewerWindow.focus();
-            } else {
-                alert('弹出窗口被阻止。请允许此站点的弹出窗口并重试。');
-            }
-        });
-    </script>
+                                    const resizer = document.createElement('div');
+                                    resizer.style.position = 'absolute';
+                                    resizer.style.top = '0';
+                                    resizer.style.right = '-2.5px';
+                                    resizer.style.width = '5px';
+                                    resizer.style.bottom = '0';
+                                    resizer.style.cursor = 'col-resize';
+                                    resizer.style.zIndex = '30'; 
+                                    th.appendChild(resizer);
+
+                                    const mouseDownHandler = (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation(); 
+
+                                        const colIndex = th.cellIndex;
+                                        const colElement = table.querySelectorAll('col')[colIndex];
+                                        if (!colElement) return;
+
+                                        const startX = e.pageX;
+                                        const startW = parseFloat(colElement.style.width); 
+
+                                        const mouseMoveHandler = (me) => {
+                                            me.preventDefault();
+                                            
+                                            const deltaX = me.pageX - startX;
+                                            const newWidth = startW + deltaX;
+                                            
+                                            if (newWidth > 20) { 
+                                                colElement.style.width = newWidth + 'px';
+                                            }
+                                        };
+                                        
+                                        const mouseUpHandler = (e) => {
+                                            document.removeEventListener('mousemove', mouseMoveHandler);
+                                            document.removeEventListener('mouseup', mouseUpHandler);
+
+                                            let newTotalWidth = 0;
+                                            table.querySelectorAll('col').forEach(col => {
+                                                newTotalWidth += parseFloat(col.style.width);
+                                            });
+                                            table.style.width = newTotalWidth + 'px';
+                                        };
+                                        
+                                        document.addEventListener('mousemove', mouseMoveHandler);
+                                        document.addEventListener('mouseup', mouseUpHandler);
+                                    };
+                                    
+                                    resizer.addEventListener('mousedown', mouseDownHandler);
+                                });
+                            };
+                            
+                            // --- 逻辑更新：添加 autoResize 参数 ---
+                            const renderTable = (side, autoResize = true) => {
+                                const state = viewerState[side];
+                                const el = elements[side];
+
+                                // --- 关键修复：在重绘前保存现有列宽 ---
+                                let existingColWidths = [];
+                                if (!autoResize) {
+                                    const existingTable = el.tableOutput.querySelector('table');
+                                    if (existingTable) {
+                                        existingTable.querySelectorAll('col').forEach(col => {
+                                            existingColWidths.push(col.style.width || '');
+                                        });
+                                    }
+                                }
+                                // --- 修复结束 ---
+
+                                if (!state.fullData) {
+                                    el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据</div>\`;
+                                    return;
+                                }
+                                
+                                const data = state.fullData;
+                                const headerIndex = state.selectedHeaderIndex;
+                                const tableData = data.slice(headerIndex);
+                                if (tableData.length === 0) {
+                                    el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据显示</div>\`;
+                                    return;
+                                }
+
+                                const headerRow = tableData[0];
+                                const bodyRows = tableData.slice(1);
+                                // const maxCols = Math.max(headerRow.length, ...bodyRows.map(r => r.length)); // 旧代码
+                                const maxCols = state.maxCols || 0; // 新：使用修剪后的列数
+
+                                let html = '<div class="table-container"><table><colgroup>';
+                                
+                                // --- 关键修复：应用保存的列宽 ---
+                                // 行号列 (col 0)
+                                let rowNumWidth = (existingColWidths.length > 0 && existingColWidths[0]) ? existingColWidths[0] : '50px';
+                                if (autoResize) rowNumWidth = '50px'; // 自动调整时重置为50px
+                                html += \`<col style="width: \${rowNumWidth}; min-width: \${rowNumWidth};">\`; 
+                                
+                                // 数据列 (col 1 to N)
+                                if (maxCols > 0) { // 检查 maxCols > 0
+                                    for (let i = 0; i < maxCols; i++) {
+                                        let widthToApply = '';
+                                        // i=0 对应 col[1], i=1 对应 col[2]
+                                        html += \`<col \${widthToApply}>\`; 
+                                    }
+                                }
+                                html += '</colgroup>';
+                                // --- 修复结束 ---
+
+                                html += '<thead><tr><th></th>'; 
+                                if (maxCols > 0) { // 检查 maxCols > 0
+                                    for (let i = 0; i < maxCols; i++) html += \`<th>\${sanitize(headerRow[i])}</th>\`;
+                                }
+                                html += '</tr></thead><tbody>';
+
+                                bodyRows.forEach((row, rowIndex) => {
+                                    const originalRowIndex = headerIndex + 1 + rowIndex;
+                                    const highlightMap = state.highlightedCells.get(originalRowIndex);
+                                    html += \`<tr><th>\${originalRowIndex + 1}</th>\`; 
+                                    if (maxCols > 0) { // 检查 maxCols > 0
+                                        if (!row) row = []; // 处理空行
+                                        for (let i = 0; i < maxCols; i++) {
+                                            const color = highlightMap ? highlightMap.get(i) : null;
+                                            let style = '';
+
+                                            // --- 修复开始：还原并修正 IF / ELSE IF 逻辑 ---
+                                            if (color === 'deepGreen') {
+                                                style = 'background-color: #166534; color: white;'; // green-800
+                                            } else if (color === 'lightGreen') {
+                                                style = 'background-color: #dcfce7;'; // green-100
+                                            } else if (color === 'lightYellow') {
+                                                style = 'background-color: #fef9c3;'; // yellow-100 (新增)
+                                            } else if (color === 'lightRed') {
+                                                style = 'background-color: #fee2e2;'; // red-100
+                                            } else if (color === 'deepRed') {
+                                                style = 'background-color: #991b1b; color: white;'; // red-800
+                                            }
+                                            // --- 修复结束 ---
+
+                                            // --- 修复：确保 <td> 总是在循环内创建 ---
+                                            html += \`<td style="\${style}">\${sanitize(row[i])}</td>\`;
+                                        }
+                                    }
+                                    html += '</tr>';
+                                });
+                                html += '</tbody></table></div>';
+                                el.tableOutput.innerHTML = html;
+
+                                const table = el.tableOutput.querySelector('table');
+                                if (table) {
+                                    if (autoResize) {
+                                        autoSizeColumns(table);
+                                    }
+                                    // --- 关键修复：确保手动调整功能在重绘后始终被重新启用 ---
+                                    makeTableResizable(table); 
+                                }
+                            };
+                            // --- 逻辑更新结束 ---
+
+                            const updateColumnSelector = (side) => {
+                                const state = viewerState[side];
+                                const el = elements[side];
+                                const headerRow = state.fullData ? state.fullData[state.selectedHeaderIndex] : [];
+                                
+                                el.compareColDropdown.innerHTML = ''; 
+                                
+                                if (!headerRow || headerRow.length === 0) {
+                                    el.compareColButton.textContent = '选择比较列';
+                                    el.compareColButton.disabled = true;
+                                    return;
+                                }
+
+                                el.compareColButton.disabled = false;
+                                const selectedCount = state.selectedCompareCols.length;
+                                if (selectedCount === 0) {
+                                    el.compareColButton.textContent = '选择比较列';
+                                } else {
+                                    el.compareColButton.textContent = \`已选 \${selectedCount} 项\`;
+                                }
+
+                                headerRow.forEach((cell, index) => {
+                                    // 关键：跳过第1列 (index 0)
+                                    if (index === 0) return; 
+                                    if (!cell) cell = '(空)'; 
+
+                                    const option = document.createElement('div');
+                                    option.className = 'custom-col-select-option';
+                                    option.dataset.colIndex = index;
+
+                                    const orderSpan = document.createElement('span');
+                                    orderSpan.className = 'custom-col-select-order';
+
+                                    const textSpan = document.createElement('span');
+                                    textSpan.className = 'custom-col-select-text';
+                                    textSpan.textContent = sanitize(cell);
+                                    textSpan.title = sanitize(cell);
+
+                                    const selectionIndex = state.selectedCompareCols.indexOf(index);
+                                    if (selectionIndex > -1) {
+                                        orderSpan.textContent = (selectionIndex + 1);
+                                        option.classList.add('selected');
+                                    }
+
+                                    option.appendChild(orderSpan);
+                                    option.appendChild(textSpan);
+
+                                    option.addEventListener('click', () => {
+                                        const colIndex = parseInt(option.dataset.colIndex, 10);
+                                        const currentSelections = state.selectedCompareCols;
+                                        const existingIndex = currentSelections.indexOf(colIndex);
+
+                                        if (existingIndex > -1) {
+                                            currentSelections.splice(existingIndex, 1);
+                                        } else {
+                                            currentSelections.push(colIndex);
+                                        }
+                                        
+                                        updateColumnSelector(side);
+                                        checkCanCompare();
+                                    });
+
+                                    el.compareColDropdown.appendChild(option);
+                                });
+                            };
+
+                            const loadSheetData = (side, sheetName) => {
+                                const state = viewerState[side];
+                                const el = elements[side];
+                                const worksheet = state.workbook.Sheets[sheetName];
+                                
+                                const sheetRef = worksheet['!ref'];
+                                if (!sheetRef) {
+                                    state.fullData = []; state.rawData = [];
+                                    renderTable(side); updateColumnSelector(side);
+                                    return;
+                                }
+                                const range = XLSX.utils.decode_range(sheetRef);
+                                let formattedData = []; // 改为 let
+                                let rawValueData = []; // 改为 let
+
+                                for (let R = range.s.r; R <= range.e.r; ++R) {
+                                    const formattedRow = [];
+                                    const rawRow = [];
+                                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                                        const cell_address = { c: C, r: R };
+                                        const cell_ref = XLSX.utils.encode_cell(cell_address);
+                                        const cell = worksheet[cell_ref];
+                                        if (cell) {
+                                            formattedRow[C] = cell.w !== undefined ? cell.w : cell.v;
+                                            rawRow[C] = cell.v;
+                                        } else {
+                                            formattedRow[C] = "";
+                                            rawRow[C] = "";
+                                        }
+                                    }
+                                    formattedData.push(formattedRow);
+                                    rawValueData.push(rawRow);
+                                }
+
+                                // --- 新增：修剪空白行列的代码 ---
+
+                                // 帮助函数：检查是否为完全空白的行
+                                const isRowCompletelyBlank = (row) => {
+                                    if (!row || row.length === 0) return true;
+                                    // .some 检查是否有任何一个单元格有值
+                                    return !row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+                                };
+
+                                // 1. 从末尾开始修剪空白行
+                                let lastNonBlankRow = -1;
+                                for (let i = formattedData.length - 1; i >= 0; i--) {
+                                    if (!isRowCompletelyBlank(formattedData[i])) {
+                                        lastNonBlankRow = i;
+                                        break;
+                                    }
+                                }
+                                
+                                // (也检查 rawData 以防万一)
+                                for (let i = rawValueData.length - 1; i > lastNonBlankRow; i--) {
+                                    if (!isRowCompletelyBlank(rawValueData[i])) {
+                                        lastNonBlankRow = i;
+                                        break;
+                                    }
+                                }
+
+                                // 裁剪数组
+                                formattedData = formattedData.slice(0, lastNonBlankRow + 1);
+                                rawValueData = rawValueData.slice(0, lastNonBlankRow + 1);
+
+
+                                // 2. 查找实际的最大列数
+                                let actualMaxCols = 0;
+                                for (const row of formattedData) {
+                                    if (row) {
+                                        // 从后向前查找最后一个有数据的单元格
+                                        for (let c = row.length - 1; c >= 0; c--) {
+                                            const cell = row[c];
+                                            if (cell !== null && cell !== undefined && String(cell).trim() !== '') {
+                                                actualMaxCols = Math.max(actualMaxCols, c + 1); // c + 1 是因为索引从0开始
+                                                break; // 移动到下一行
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 处理一种特殊情况：数据行全空，但标题行有内容
+                                if (formattedData.length > 0 && actualMaxCols === 0) {
+                                     if (formattedData[0] && formattedData[0].length > 0) {
+                                        actualMaxCols = formattedData[0].length; 
+                                        // 再次修剪标题行末尾的空白单元格
+                                        for(let c = formattedData[0].length - 1; c >= 0; c--) {
+                                            const cell = formattedData[0][c];
+                                            if (cell !== null && cell !== undefined && String(cell).trim() !== '') {
+                                                actualMaxCols = c + 1;
+                                                break;
+                                            }
+                                        }
+                                     }
+                                }
+                                
+                                // --- 修剪代码结束 ---
+
+                                state.fullData = formattedData;
+                                state.rawData = rawValueData;
+                                state.maxCols = actualMaxCols; // 存储修剪后的列数
+                                
+                                el.headerRowSelect.innerHTML = '';
+                                const rowCount = Math.min(20, state.fullData.length);
+                                for(let i = 0; i < rowCount; i++) el.headerRowSelect.add(new Option(\`第 \${i + 1} 行\`, i));
+                                el.headerRowSelect.disabled = false;
+                                
+                                state.selectedHeaderIndex = 0;
+                                el.headerRowSelect.value = 0;
+
+                                state.selectedCompareCols = []; 
+                                checkCanCompare();
+                                
+                                renderTable(side); // 默认 autoResize = true
+                                updateColumnSelector(side);
+                            };
+                            
+                            const handleFile = (e, side) => {
+                                const file = e.target.files[0];
+                                const state = viewerState[side];
+                                const el = elements[side];
+                                if (!file) return;
+
+                                el.filename.textContent = \`已选择: \${file.name}\`; 
+                                el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-500">正在加载...</div>\`;
+                                
+                                [el.sheetSelect, el.headerRowSelect, el.compareColButton].forEach(elem => { elem.disabled = true; });
+                                el.headerRowSelect.innerHTML = '<option>...</option>';
+                                el.compareColButton.textContent = '...';
+                                el.compareColDropdown.innerHTML = '';
+
+
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    try {
+                                        const data = new Uint8Array(event.target.result);
+                                        state.workbook = XLSX.read(data, { type: 'array' });
+                                
+                                        linkState.sheetLinked = false;
+                                        linkState.headerLinked = false;
+
+                                        el.sheetSelect.innerHTML = '';
+                                        if (state.workbook.SheetNames.length === 0) throw new Error("文件中没有找到工作表。");
+
+                                        state.workbook.SheetNames.forEach(name => el.sheetSelect.add(new Option(name, name)));
+                                        el.sheetSelect.disabled = false;
+                                        loadSheetData(side, state.workbook.SheetNames[0]);
+
+                                    } catch (error) { 
+                                        console.error("File processing failed:", error);
+                                        el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-red-500">\${error.message}</div>\`;
+                                    }
+                                }; 
+                                reader.readAsArrayBuffer(file);
+                            }; 
+
+                            const startComparison = () => {
+                                ['1', '2'].forEach(s => {
+                                    viewerState[s].highlightedCells.clear();
+                                });
+                                
+                                const state1 = viewerState['1'], state2 = viewerState['2'];
+                                const data1 = state1.rawData.slice(state1.selectedHeaderIndex + 1);
+                                const data2 = state2.rawData.slice(state2.selectedHeaderIndex + 1);
+                                
+                                const compareCols1 = state1.selectedCompareCols; // [3, 4]
+                                const compareCols2 = state2.selectedCompareCols; // [4, 2]
+                                
+                                const keyCol1 = 0, keyCol2 = 0;
+
+                                const allCols1 = [keyCol1, ...compareCols1];
+                                const allCols2 = [keyCol2, ...compareCols2];
+
+                                /**
+                                 * (重载) 为一行高亮所有被比较的单元格
+                                 */
+                                const addHighlightAll = (side, rowIndex, color) => {
+                                    const state = viewerState[side];
+                                    const originalRowIndex = state.selectedHeaderIndex + 1 + rowIndex;
+                                    if (!state.highlightedCells.has(originalRowIndex)) {
+                                        state.highlightedCells.set(originalRowIndex, new Map());
+                                    }
+                                    const colsToHighlight = (side === '1') ? allCols1 : allCols2;
+                                    colsToHighlight.forEach(colIndex => {
+                                        state.highlightedCells.get(originalRowIndex).set(colIndex, color);
+                                    });
+                                };
+
+                                /**
+                                 * (新增) 为部分匹配的行逐个单元格高亮
+                                 */
+                                const addPartialHighlight = (rowIndex1, rowIndex2) => {
+                                    const originalRowIndex1 = state1.selectedHeaderIndex + 1 + rowIndex1;
+                                    const originalRowIndex2 = state2.selectedHeaderIndex + 1 + rowIndex2;
+                                    
+                                    if (!state1.highlightedCells.has(originalRowIndex1)) state1.highlightedCells.set(originalRowIndex1, new Map());
+                                    if (!state2.highlightedCells.has(originalRowIndex2)) state2.highlightedCells.set(originalRowIndex2, new Map());
+
+                                    const map1 = state1.highlightedCells.get(originalRowIndex1);
+                                    const map2 = state2.highlightedCells.get(originalRowIndex2);
+                                    const row1 = data1[rowIndex1];
+                                    const row2 = data2[rowIndex2];
+
+                                    for (let c = 0; c < allCols1.length; c++) {
+                                        const col1 = allCols1[c];
+                                        const col2 = allCols2[c];
+                                        const val1 = row1[col1];
+                                        const val2 = row2[col2];
+
+                                        // 检查是否为第1列 (主键列)
+                                        if (col1 === 0) {
+                                            // --- 应用新的（绿/黄/红）逻辑 ---
+                                            if (val1 === val2) {
+                                                map1.set(col1, 'lightGreen');
+                                                map2.set(col2, 'lightGreen');
+                                            } else if (isSubsequence(val1, val2)) { // 检查子集
+                                                map1.set(col1, 'lightYellow');
+                                                map2.set(col2, 'lightYellow');
+                                            } else {
+                                                map1.set(col1, 'lightRed');
+                                                map2.set(col2, 'lightRed');
+                                            }
+                                        } else {
+                                            // --- 对所有其他比较列，使用原逻辑 ---
+                                            if (val1 === val2) {
+                                                map1.set(col1, 'lightGreen'); // 匹配：浅绿
+                                                map2.set(col2, 'lightGreen');
+                                            } else {
+                                                map1.set(col1, 'lightRed'); // 不匹配：浅红
+                                                map2.set(col2, 'lightRed');
+                                            }
+                                        }
+                                    }
+                                };
+
+                                const claimed1 = new Set();
+                                const claimed2 = new Set();
+                                const totalComparisons = allCols1.length;
+
+                                data1.forEach((row, i) => {
+                                    if (isRowBlank(row, allCols1)) {
+                                        claimed1.add(i);
+                                    }
+                                });
+                                data2.forEach((row, j) => {
+                                    if (isRowBlank(row, allCols2)) {
+                                        claimed2.add(j);
+                                    }
+                                });
+
+                                // --- Pass 1: Deep Green (Perfect Matches) ---
+                                for (let i = 0; i < data1.length; i++) {
+                                    if (claimed1.has(i)) continue;
+                                    const row1 = data1[i];
+                                    
+                                    for (let j = 0; j < data2.length; j++) {
+                                        if (claimed2.has(j)) continue;
+                                        const row2 = data2[j];
+                                        
+                                        let matches = 0;
+                                        for (let c = 0; c < totalComparisons; c++) {
+                                            if (row1[allCols1[c]] === row2[allCols2[c]]) {
+                                                matches++;
+                                            }
+                                        }
+
+                                        if (matches === totalComparisons) {
+                                            addHighlightAll('1', i, 'deepGreen');
+                                            addHighlightAll('2', j, 'deepGreen');
+                                            claimed1.add(i);
+                                            claimed2.add(j);
+                                            break; 
+                                        }
+                                    }
+                                }
+
+                                // --- Pass 2: Light Red/Green (Partial Matches) ---
+                                for (let i = 0; i < data1.length; i++) {
+                                    if (claimed1.has(i)) continue; 
+                                    const row1 = data1[i];
+                                    
+                                    for (let j = 0; j < data2.length; j++) {
+                                        if (claimed2.has(j)) continue; 
+                                        const row2 = data2[j];
+                                        
+                                        let matches = 0;
+                                        for (let c = 0; c < totalComparisons; c++) {
+                                            if (row1[allCols1[c]] === row2[allCols2[c]]) {
+                                                matches++;
+                                            }
+                                        }
+
+                                        if (matches > 0) { 
+                                            addPartialHighlight(i, j);
+                                            claimed1.add(i);
+                                            claimed2.add(j);
+                                            break; 
+                                        }
+                                    }
+                                }
+
+                                // --- Pass 3: Deep Red (No Matches) ---
+                                for (let i = 0; i < data1.length; i++) {
+                                    if (!claimed1.has(i)) {
+                                        addHighlightAll('1', i, 'deepRed');
+                                    }
+                                }
+                                for (let j = 0; j < data2.length; j++) {
+                                    if (!claimed2.has(j)) {
+                                        addHighlightAll('2', j, 'deepRed');
+                                    }
+                                }
+
+                                // --- 逻辑更新：调用时不自动调整列宽 ---
+                                renderTable('1', false);
+                                renderTable('2', false);
+                            };
+                            
+                            const handleCustomCopy = (event) => {
+                                const currentDoc = event.currentTarget.ownerDocument;
+                                const currentWin = currentDoc.defaultView;
+                                const selection = currentWin.getSelection();
+                            
+                                if (!selection.rangeCount || selection.isCollapsed) return;
+                            
+                                event.preventDefault();
+                                event.stopImmediatePropagation();
+                            
+                                const range = selection.getRangeAt(0);
+                                const savedRange = range.cloneRange();
+                            
+                                const container = currentDoc.createElement('div');
+                                container.appendChild(range.cloneContents());
+                            
+                                let textToCopy;
+                                const tableRows = container.querySelectorAll('tr');
+                                if (tableRows.length > 0) {
+                                    const rows = [];
+                                    tableRows.forEach(tr => {
+                                        const cells = [];
+                                        tr.querySelectorAll('th, td').forEach(cell => {
+                                            cells.push(cell.textContent);
+                                        });
+                                        rows.push(cells.join('\\t')); 
+                                    });
+                                    textToCopy = rows.join('\\n'); 
+                                } else {
+                                    textToCopy = selection.toString(); 
+                                }
+                            
+                                const textArea = currentDoc.createElement('textarea');
+                                textArea.value = textToCopy;
+                                textArea.style.position = 'fixed';
+                                textArea.style.top = '-9999px';
+                                textArea.style.left = '-9999px';
+                                currentDoc.body.appendChild(textArea);
+                                textArea.focus();
+                                textArea.select();
+                                try {
+                                    const successful = currentDoc.execCommand('copy');
+                                    if (!successful) {
+                                       console.error('execCommand was not successful');
+                                    }
+                                } catch (err) {
+                                    console.error('无法复制: ', err);
+                                }
+                                currentDoc.body.removeChild(textArea);
+
+                                selection.removeAllRanges();
+                                selection.addRange(savedRange);
+                            };
+
+                            const createSheetSelectListener = (side) => {
+                                return (e) => {
+                                    loadSheetData(side, e.target.value);
+                                    if (!linkState.sheetLinked) {
+                                        const otherSide = side === '1' ? '2' : '1'; 
+                                        if (viewerState[otherSide].workbook) {
+                                            const otherSelect = elements[otherSide].sheetSelect;
+                                            if (e.target.selectedIndex < otherSelect.options.length) {
+                                                otherSelect.selectedIndex = e.target.selectedIndex;
+                                                loadSheetData(otherSide, otherSelect.value);
+                                            }
+                                        }
+                                        linkState.sheetLinked = true;
+                                    }
+                                };
+                            };
+
+                            const createHeaderRowSelectListener = (side) => {
+                                return (e) => {
+                                    const selectedIndex = e.target.selectedIndex;
+                                    viewerState[side].selectedHeaderIndex = parseInt(e.target.value, 10);
+                                    
+                                    viewerState[side].selectedCompareCols = [];
+                                    checkCanCompare();
+
+                                    renderTable(side); // 默认 autoResize = true
+                                    updateColumnSelector(side); 
+
+                                    if (!linkState.headerLinked) {
+                                        const otherSide = side === '1' ? '2' : '1'; 
+                                        if (viewerState[otherSide].fullData) {
+                                            const otherSelect = elements[otherSide].headerRowSelect;
+                                            if (selectedIndex < otherSelect.options.length) {
+                                                otherSelect.selectedIndex = selectedIndex;
+                                                viewerState[otherSide].selectedHeaderIndex = parseInt(otherSelect.value, 10);
+                                                
+                                                viewerState[otherSide].selectedCompareCols = [];
+                                                checkCanCompare();
+
+                                                renderTable(otherSide); // 默认 autoResize = true
+                                                updateColumnSelector(otherSide);
+                                            }
+                                        }
+                                        linkState.headerLinked = true;
+                                    }
+                                };
+                            };
+
+                            /**
+                             * 设置自定义下拉框的打开/关闭逻辑
+                             */
+                            const setupDropdownToggle = (side) => {
+                                const el = elements[side];
+                                el.compareColButton.addEventListener('click', (e) => {
+                                    e.stopPropagation(); 
+                                    
+                                    const otherSide = side === '1' ? '2' : '1';
+                                    const otherEl = elements[otherSide];
+
+                                    otherEl.compareColDropdown.classList.add('hidden');
+                                    el.compareColDropdown.classList.toggle('hidden');
+                                });
+                            };
+
+                            /**
+                             * 全局点击监听器，用于关闭所有打开的下拉框
+                             */
+                            document.addEventListener('click', () => {
+                                if (elements['1'] && elements['1'].compareColDropdown) {
+                                    elements['1'].compareColDropdown.classList.add('hidden');
+                                }
+                                if (elements['2'] && elements['2'].compareColDropdown) {
+                                    elements['2'].compareColDropdown.classList.add('hidden');
+                                }
+                            });
+
+
+                            ['1', '2'].forEach(side => {
+                                const el = elements[side];
+                                el.fileUpload.addEventListener('change', (e) => handleFile(e, side));
+                                el.sheetSelect.addEventListener('change', createSheetSelectListener(side));
+                                el.headerRowSelect.addEventListener('change', createHeaderRowSelectListener(side));
+                                setupDropdownToggle(side);
+                                el.tableOutput.addEventListener('copy', handleCustomCopy);
+                            });
+                            
+                            elements.compareButton.addEventListener('click', startComparison);
+
+                            const syncScroll = (source, target, state) => {
+                                if (isSyncingScroll) return;
+                                isSyncingScroll = true;
+                                
+                                const delta = source.scrollTop - state.lastScrollTop;
+                                target.scrollTop += delta;
+                                
+                                viewerState['1'].lastScrollTop = elements['1'].tableOutput.scrollTop;
+                                viewerState['2'].lastScrollTop = elements['2'].tableOutput.scrollTop;
+                                
+                                requestAnimationFrame(() => {
+                                    isSyncingScroll = false;
+                                });
+                            };
+
+                            const scrollHandler1 = () => {
+                                if (elements.scrollLock.checked) {
+                                    syncScroll(elements['1'].tableOutput, elements['2'].tableOutput, viewerState['1']);
+                                }
+                                viewerState['1'].lastScrollTop = elements['1'].tableOutput.scrollTop;
+                            };
+                            const scrollHandler2 = () => {
+                                if (elements.scrollLock.checked) {
+                                    syncScroll(elements['2'].tableOutput, elements['1'].tableOutput, viewerState['2']);
+                                }
+                                viewerState['2'].lastScrollTop = elements['2'].tableOutput.scrollTop;
+                            };
+
+                            elements['1'].tableOutput.addEventListener('scroll', scrollHandler1);
+                            elements['2'].tableOutput.addEventListener('scroll', scrollHandler2);
+
+                            let resizeTimer;
+                            const debouncedResizeHandler = () => {
+                                clearTimeout(resizeTimer);
+                                resizeTimer = setTimeout(() => {
+                                    ['1', '2'].forEach(side => {
+                                        const table = elements[side].tableOutput.querySelector('table');
+                                        if (table) {
+                                            autoSizeColumns(table);
+                                        }
+                                    });
+                                }, 200); 
+                            };
+                            window.addEventListener('resize', debouncedResizeHandler);
+                        }
+                        
+                        initializeViewer();
+                    <\/script>
+                </body>
+                </html>
+                `;
+
+                // 将 HTML 写入新窗口
+                viewerWindow.document.write(viewerHTML);
+                viewerWindow.document.close();
+                viewerWindow.focus();
+            } else {
+                // 处理弹出窗口被阻止的情况
+                launcherError.textContent = '弹出窗口被阻止。请允许此站点的弹出窗口并重试。';
+                launcherError.classList.remove('hidden');
+            }
+        });
+    </script>
 
 </body>
 </html>
