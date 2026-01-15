@@ -9,6 +9,10 @@
 - **技术**: HTML5, PDF.js, SheetJS, Tailwind CSS.
 - **使用方法**: 直接在浏览器中打开 `index.html` 即可使用。
 
+### 2. Excel Comparator (`/tools/excel-comparator`)
+- **功能**: 并排对比两个 Excel 文件，自动高亮差异点，适合财务模型核对。
+- **技术**: SheetJS, Tailwind CSS.
+
 ## 🚀 未来计划
 - 集成 AI  earnings report 分析脚本。
 - 自动化财务模型构建工具。
