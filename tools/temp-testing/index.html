@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temp Testing - 启动器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- 启动器界面 -->
+    <div id="launcher-container" class="flex items-center justify-center h-full">
+        <div class="text-center p-8 bg-white rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Temp Testing</h1>
+            <p class="text-gray-600 mb-6">这是一个临时测试工具，用于快速测试和验证功能。</p>
+            <button id="launch-button" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 shadow-md hover:shadow-lg">
+                启动测试工具
+            </button>
+            <p id="launcher-error" class="text-red-500 text-sm mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('launch-button').addEventListener('click', () => {
+            const launcherError = document.getElementById('launcher-error');
+            launcherError.classList.add('hidden');
+            
+            // 获取可用的屏幕宽度和高度
+            const width = screen.availWidth;
+            const height = screen.availHeight;
+            
+            // 打开一个新窗口
+            const testWindow = window.open('', 'TempTesting', `resizable=yes,scrollbars=yes,width=${width},height=${height},top=0,left=0`);
+
+            if (testWindow) {
+                // 为新窗口准备 HTML 内容
+                const testHTML = `
+                <!DOCTYPE html>
+                <html lang="zh-CN">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Temp Testing - 测试界面</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body class="bg-slate-50 font-sans">
+                    <div class="min-h-screen p-8">
+                        <div class="max-w-4xl mx-auto">
+                            <h1 class="text-4xl font-bold text-slate-800 mb-6">Temp Testing 工具</h1>
+                            <div class="bg-white rounded-xl shadow-lg p-6">
+                                <p class="text-gray-600 mb-4">这是一个临时测试工具，您可以在这里进行各种功能测试。</p>
+                                <div class="mt-6">
+                                    <button id="test-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                                        执行测试
+                                    </button>
+                                </div>
+                                <div id="test-result" class="mt-4 p-4 bg-gray-100 rounded-lg hidden">
+                                    <p class="text-gray-800"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        document.getElementById('test-btn').addEventListener('click', () => {
+                            const resultDiv = document.getElementById('test-result');
+                            const resultText = resultDiv.querySelector('p');
+                            resultText.textContent = '测试执行成功！当前时间: ' + new Date().toLocaleString('zh-CN');
+                            resultDiv.classList.remove('hidden');
+                        });
+                    <\/script>
+                </body>
+                </html>
+                `;
+                
+                testWindow.document.write(testHTML);
+                testWindow.document.close();
+            } else {
+                launcherError.textContent = '无法打开新窗口，请检查浏览器弹窗设置。';
+                launcherError.classList.remove('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>

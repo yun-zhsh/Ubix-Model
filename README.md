@@ -13,6 +13,10 @@
 - **功能**: 并排对比两个 Excel 文件，自动高亮差异点，适合财务模型核对。
 - **技术**: SheetJS, Tailwind CSS.
 
+### 3. Temp Testing (`/tools/temp-testing`)
+- **功能**: 临时测试工具，用于快速测试和验证各种功能。
+- **技术**: Tailwind CSS.
+
 ## 🚀 未来计划
 - 集成 AI  earnings report 分析脚本。
 - 自动化财务模型构建工具。
