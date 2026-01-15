@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel 并排查看工具 - 启动器</title>
+    <!-- 引入 Tailwind CSS 以便快速构建美观的界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- 启动器界面 -->
+    <div id="launcher-container" class="flex items-center justify-center h-full">
+        <div class="text-center p-8 bg-white rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Excel 并排查看工具</h1>
+            <p class="text-gray-600 mb-6">点击下方按钮，在新窗口中启动工具。</p>
+            <button id="launch-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-300 shadow-md hover:shadow-lg">
+                启动查看工具
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('launch-button').addEventListener('click', () => {
+            const viewerWindow = window.open('', 'ExcelViewer', 'resizable=yes,scrollbars=yes,width=1200,height=800');
+
+            if (viewerWindow) {
+                // 这是为新弹出的窗口准备的完整 HTML 内容
+                const viewerHTML = `
+                    <!DOCTYPE html>
+                    <html lang="zh-CN">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Excel 并排查看工具</title>
+                        <script src="https://cdn.tailwindcss.com"><\/script>
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
+                        <style>
+                            html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+                            #resize-container { display: flex; width: 100%; height: calc(100vh - 230px); border: 1px solid #d1d5db; border-radius: 0.5rem; overflow: hidden; }
+                            .table-wrapper { overflow: auto; flex-grow: 1; flex-shrink: 1; background-color: white; }
+                            #resize-handle { flex: 0 0 8px; background-color: #e5e7eb; cursor: col-resize; transition: background-color 0.2s; }
+                            #resize-handle:hover { background-color: #93c5fd; }
+                            .table-container table { table-layout: fixed; width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+                            
+                            /* Base for all cells */
+                            .table-container th, .table-container td {
+                                border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left;
+                                /* Allow wrapping and break long words */
+                                white-space: normal;
+                                word-wrap: break-word;
+                            }
+
+                            /* Column Headers have special behavior */
+                            .table-container thead th {
+                                background-color: #f8fafc; font-weight: 600; position: sticky; top: 0; z-index: 20;
+                                /* Keep headers from wrapping, use ellipsis */
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+
+                            /* Row Number column (header part in body) */
+                            .table-container tbody th {
+                                background-color: #f8fafc; font-weight: 600; position: sticky; left: 0; z-index: 10;
+                                /* Fixed width for row numbers */
+                                width: 50px; min-width: 50px; max-width: 50px;
+                                text-align: center;
+                            }
+                            
+                            /* Top-left corner cell */
+                            .table-container thead th:first-child {
+                                left: 0; z-index: 30;
+                                /* Fixed width to match row number column */
+                                width: 50px; min-width: 50px; max-width: 50px;
+                            }
+                        </style>
+                    </head>
+                    <body class="bg-gray-100 font-sans">
+                        <div class="w-full p-4 md:p-6 h-full flex flex-col">
+                            <header class="text-center mb-4 flex-shrink-0">
+                                <h1 class="text-2xl font-bold text-gray-800">Excel 并排查看工具</h1>
+                                <p class="text-gray-500 mt-1">上传文件，选择标题行和比较列，然后点击比较按钮。</p>
+                                <button id="compare-button" class="mt-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>开始比较</button>
+                            </header>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 flex-shrink-0">
+                                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <label for="file-upload-1" class="flex-grow inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格一</label>
+                                        <select id="sheet-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
+                                    </div>
+                                    <p id="filename-1" class="text-sm text-gray-500 truncate"></p>
+                                    <div class="flex items-center gap-2">
+                                        <select id="header-row-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
+                                        <select id="compare-col-select-1" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择比较列</option></select>
+                                    </div>
+                                    <input id="file-upload-1" type="file" class="hidden" accept=".xlsx, .xls, .csv">
+                                </div>
+                                <div class="bg-white p-4 rounded-lg shadow-sm flex flex-col gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <label for="file-upload-2" class="flex-grow inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md cursor-pointer text-center transition duration-300">上传表格二</label>
+                                        <select id="sheet-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择工作表</option></select>
+                                    </div>
+                                    <p id="filename-2" class="text-sm text-gray-500 truncate"></p>
+                                     <div class="flex items-center gap-2">
+                                        <select id="header-row-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择标题行</option></select>
+                                        <select id="compare-col-select-2" class="w-1/2 p-2 border border-gray-300 rounded-md bg-gray-50" disabled><option>选择比较列</option></select>
+                                    </div>
+                                    <input id="file-upload-2" type="file" class="hidden" accept=".xlsx, .xls, .csv">
+                                </div>
+                            </div>
+
+                            <div id="resize-container">
+                                <div id="table-output-1" class="table-wrapper p-2 rounded-l-lg"><div class="flex items-center justify-center h-full text-gray-400">表格一内容</div></div>
+                                <div id="resize-handle"></div>
+                                <div id="table-output-2" class="table-wrapper p-2 rounded-r-lg"><div class="flex items-center justify-center h-full text-gray-400">表格二内容</div></div>
+                            </div>
+                        </div>
+
+                        <script>
+                            function initializeViewer() {
+                                const viewerState = {
+                                    '1': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareColIndex: null, highlightedCells: new Map() },
+                                    '2': { workbook: null, fullData: null, rawData: null, selectedHeaderIndex: 0, selectedCompareColIndex: null, highlightedCells: new Map() }
+                                };
+                                
+                                const linkState = { sheetLinked: false, headerLinked: false };
+
+                                const elements = { compareButton: document.getElementById('compare-button') };
+                                ['1', '2'].forEach(side => {
+                                    elements[side] = {
+                                        fileUpload: document.getElementById(\`file-upload-\${side}\`),
+                                        sheetSelect: document.getElementById(\`sheet-select-\${side}\`),
+                                        headerRowSelect: document.getElementById(\`header-row-select-\${side}\`),
+                                        compareColSelect: document.getElementById(\`compare-col-select-\${side}\`),
+                                        filename: document.getElementById(\`filename-\${side}\`),
+                                        tableOutput: document.getElementById(\`table-output-\${side}\`)
+                                    };
+                                });
+
+                                const sanitize = (val) => String(val || "").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+                                
+                                const checkCanCompare = () => {
+                                    elements.compareButton.disabled = !(viewerState['1'].selectedCompareColIndex !== null && viewerState['2'].selectedCompareColIndex !== null);
+                                };
+
+                                const makeTableResizable = (table) => {
+                                    const headerCells = table.querySelectorAll('thead th');
+                                    headerCells.forEach(th => {
+                                        if (th.cellIndex === 0) return;
+
+                                        th.style.position = 'relative';
+
+                                        const resizer = document.createElement('div');
+                                        resizer.style.position = 'absolute';
+                                        resizer.style.top = '0';
+                                        resizer.style.right = '-2.5px';
+                                        resizer.style.width = '5px';
+                                        resizer.style.bottom = '0';
+                                        resizer.style.cursor = 'col-resize';
+                                        resizer.style.zIndex = '1';
+                                        th.appendChild(resizer);
+
+                                        const mouseDownHandler = (e) => {
+                                            e.preventDefault();
+                                            const startX = e.pageX;
+                                            const startW = th.offsetWidth;
+
+                                            const mouseMoveHandler = (me) => {
+                                                const newWidth = startW + (me.pageX - startX);
+                                                if (newWidth > 20) { // Minimum width set to 20px
+                                                    th.style.width = newWidth + 'px';
+                                                }
+                                            };
+                                            const mouseUpHandler = () => {
+                                                document.removeEventListener('mousemove', mouseMoveHandler);
+                                                document.removeEventListener('mouseup', mouseUpHandler);
+                                            };
+                                            document.addEventListener('mousemove', mouseMoveHandler);
+                                            document.addEventListener('mouseup', mouseUpHandler);
+                                        };
+                                        resizer.addEventListener('mousedown', mouseDownHandler);
+                                    });
+                                };
+
+                                const renderTable = (side) => {
+                                    const state = viewerState[side];
+                                    const el = elements[side];
+                                    if (!state.fullData) {
+                                        el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据</div>\`;
+                                        return;
+                                    }
+                                    
+                                    const data = state.fullData;
+                                    const headerIndex = state.selectedHeaderIndex;
+                                    const tableData = data.slice(headerIndex);
+                                    if (tableData.length === 0) {
+                                        el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-400">无数据显示</div>\`;
+                                        return;
+                                    }
+
+                                    const headerRow = tableData[0];
+                                    const bodyRows = tableData.slice(1);
+                                    const maxCols = Math.max(headerRow.length, ...bodyRows.map(r => r.length));
+
+                                    let html = '<div class="table-container"><table><colgroup>';
+                                    // Add colgroup for width control
+                                    html += '<col style="width: 50px; min-width: 50px;">'; // For row number column
+                                    for (let i = 0; i < maxCols; i++) {
+                                        html += '<col>';
+                                    }
+                                    html += '</colgroup>';
+
+                                    html += '<thead><tr><th></th>';
+                                    for (let i = 0; i < maxCols; i++) html += \`<th>\${sanitize(headerRow[i])}</th>\`;
+                                    html += '</tr></thead><tbody>';
+
+                                    bodyRows.forEach((row, rowIndex) => {
+                                        const originalRowIndex = headerIndex + 1 + rowIndex;
+                                        const highlightMap = state.highlightedCells.get(originalRowIndex);
+                                        html += \`<tr><th>\${originalRowIndex + 1}</th>\`;
+                                        for (let i = 0; i < maxCols; i++) {
+                                            const color = highlightMap ? highlightMap.get(i) : null;
+                                            let style = '';
+                                            if (color === 'green') {
+                                                style = 'background-color: #dcfce7;';
+                                            } else if (color === 'red') {
+                                                style = 'background-color: #fee2e2;';
+                                            }
+                                            html += \`<td style="\${style}">\${sanitize(row[i])}</td>\`;
+                                        }
+                                        html += '</tr>';
+                                    });
+                                    html += '</tbody></table></div>';
+                                    el.tableOutput.innerHTML = html;
+
+                                    const table = el.tableOutput.querySelector('table');
+                                    if (table) {
+                                        makeTableResizable(table);
+                                    }
+                                };
+
+                                const updateColumnSelector = (side) => {
+                                    const state = viewerState[side];
+                                    const el = elements[side];
+                                    const headerRow = state.fullData ? state.fullData[state.selectedHeaderIndex] : [];
+                                    
+                                    el.compareColSelect.innerHTML = '<option value="">选择比较列</option>';
+                                    if (headerRow) {
+                                        headerRow.forEach((cell, index) => {
+                                            if (cell) el.compareColSelect.add(new Option(sanitize(cell), index));
+                                        });
+                                    }
+                                    el.compareColSelect.disabled = !headerRow || headerRow.length === 0;
+                                    state.selectedCompareColIndex = null;
+                                    checkCanCompare();
+                                };
+
+                                const loadSheetData = (side, sheetName) => {
+                                    const state = viewerState[side];
+                                    const el = elements[side];
+                                    const worksheet = state.workbook.Sheets[sheetName];
+                                    
+                                    const sheetRef = worksheet['!ref'];
+                                    if (!sheetRef) {
+                                        state.fullData = []; state.rawData = [];
+                                        renderTable(side); updateColumnSelector(side);
+                                        return;
+                                    }
+                                    const range = XLSX.utils.decode_range(sheetRef);
+                                    const formattedData = [];
+                                    const rawValueData = [];
+
+                                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                                        const formattedRow = [];
+                                        const rawRow = [];
+                                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                                            const cell_address = { c: C, r: R };
+                                            const cell_ref = XLSX.utils.encode_cell(cell_address);
+                                            const cell = worksheet[cell_ref];
+                                            if (cell) {
+                                                formattedRow[C] = cell.w !== undefined ? cell.w : cell.v;
+                                                rawRow[C] = cell.v;
+                                            } else {
+                                                formattedRow[C] = "";
+                                                rawRow[C] = "";
+                                            }
+                                        }
+                                        formattedData.push(formattedRow);
+                                        rawValueData.push(rawRow);
+                                    }
+
+                                    state.fullData = formattedData;
+                                    state.rawData = rawValueData;
+                                    
+                                    el.headerRowSelect.innerHTML = '';
+                                    const rowCount = Math.min(20, state.fullData.length);
+                                    for(let i = 0; i < rowCount; i++) el.headerRowSelect.add(new Option(\`第 \${i + 1} 行\`, i));
+                                    el.headerRowSelect.disabled = false;
+                                    
+                                    state.selectedHeaderIndex = 0;
+                                    el.headerRowSelect.value = 0;
+                                    
+                                    renderTable(side);
+                                    updateColumnSelector(side);
+                                };
+                                
+                                const handleFile = (e, side) => {
+                                    const file = e.target.files[0];
+                                    const state = viewerState[side];
+                                    const el = elements[side];
+                                    if (!file) return;
+
+                                    el.filename.textContent = \`已选择: \${file.name}\`;
+                                    el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-gray-500">正在加载...</div>\`;
+                                    [el.sheetSelect, el.headerRowSelect, el.compareColSelect].forEach(elem => { elem.disabled = true; });
+                                    el.headerRowSelect.innerHTML = '<option>...</option>';
+                                    el.compareColSelect.innerHTML = '<option>...</option>';
+
+
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                        try {
+                                            const data = new Uint8Array(event.target.result);
+                                            state.workbook = XLSX.read(data, { type: 'array' });
+                                            
+                                            // Reset link state on new file upload
+                                            linkState.sheetLinked = false;
+                                            linkState.headerLinked = false;
+
+                                            el.sheetSelect.innerHTML = '';
+                                            if (state.workbook.SheetNames.length === 0) throw new Error("文件中没有找到工作表。");
+
+                                            state.workbook.SheetNames.forEach(name => el.sheetSelect.add(new Option(name, name)));
+                                            el.sheetSelect.disabled = false;
+                                            loadSheetData(side, state.workbook.SheetNames[0]);
+                                        } catch (error) {
+                                            console.error("File processing failed:", error);
+                                            el.tableOutput.innerHTML = \`<div class="flex items-center justify-center h-full text-red-500">\${error.message}</div>\`;
+                                        }
+                                    };
+                                    reader.readAsArrayBuffer(file);
+                                };
+
+                                const startComparison = () => {
+                                    ['1', '2'].forEach(s => viewerState[s].highlightedCells.clear());
+                                    const state1 = viewerState['1'], state2 = viewerState['2'];
+                                    const data1 = state1.rawData.slice(state1.selectedHeaderIndex + 1);
+                                    const data2 = state2.rawData.slice(state2.selectedHeaderIndex + 1);
+                                    const col1 = state1.selectedCompareColIndex, col2 = state2.selectedCompareColIndex;
+
+                                    const addHighlight = (side, rowIndex, colIndex, color) => {
+                                        const state = viewerState[side];
+                                        const originalRowIndex = state.selectedHeaderIndex + 1 + rowIndex;
+                                        if (!state.highlightedCells.has(originalRowIndex)) {
+                                            state.highlightedCells.set(originalRowIndex, new Map());
+                                        }
+                                        state.highlightedCells.get(originalRowIndex).set(colIndex, color);
+                                    };
+
+                                    const isBlank = (row, dataColIndex) => {
+                                        const key = row ? row[0] : undefined;
+                                        const data = row ? row[dataColIndex] : undefined;
+                                        const isKeyBlank = key === null || key === undefined || String(key).trim() === '';
+                                        const isDataBlank = data === null || data === undefined || String(data).trim() === '';
+                                        return isKeyBlank && isDataBlank;
+                                    };
+
+                                    const claimed1 = new Set(), claimed2 = new Set();
+                                    
+                                    data1.forEach((row, index) => { if (isBlank(row, col1)) claimed1.add(index); });
+                                    data2.forEach((row, index) => { if (isBlank(row, col2)) claimed2.add(index); });
+
+                                    // Pass 1: Perfect Matches
+                                    for (let i = 0; i < data1.length; i++) {
+                                        if (claimed1.has(i)) continue;
+                                        for (let j = 0; j < data2.length; j++) {
+                                            if (claimed2.has(j)) continue;
+                                            if (data1[i][0] === data2[j][0] && data1[i][col1] === data2[j][col2]) {
+                                                addHighlight('1', i, 0, 'green'); addHighlight('1', i, col1, 'green');
+                                                addHighlight('2', j, 0, 'green'); addHighlight('2', j, col2, 'green');
+                                                claimed1.add(i);
+                                                claimed2.add(j);
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // Pass 2: Key Match, Data Mismatch
+                                    for (let i = 0; i < data1.length; i++) {
+                                        if (claimed1.has(i)) continue;
+                                        for (let j = 0; j < data2.length; j++) {
+                                            if (claimed2.has(j)) continue;
+                                            if (data1[i][0] === data2[j][0]) {
+                                                addHighlight('1', i, 0, 'green'); addHighlight('1', i, col1, 'red');
+                                                addHighlight('2', j, 0, 'green'); addHighlight('2', j, col2, 'red');
+                                                claimed1.add(i);
+                                                claimed2.add(j);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Pass 3: Data Match, Key Mismatch
+                                    for (let i = 0; i < data1.length; i++) {
+                                        if (claimed1.has(i)) continue;
+                                        for (let j = 0; j < data2.length; j++) {
+                                            if (claimed2.has(j)) continue;
+                                            const dataValue1 = data1[i][col1];
+                                            if (dataValue1 !== undefined && dataValue1 !== null && String(dataValue1).trim() !== '' && dataValue1 === data2[j][col2]) {
+                                                addHighlight('1', i, 0, 'red');   addHighlight('1', i, col1, 'green');
+                                                addHighlight('2', j, 0, 'red');   addHighlight('2', j, col2, 'green');
+                                                claimed1.add(i);
+                                                claimed2.add(j);
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    // Pass 4: No Matches
+                                    for (let i = 0; i < data1.length; i++) {
+                                        if (!claimed1.has(i)) {
+                                            addHighlight('1', i, 0, 'red'); addHighlight('1', i, col1, 'red');
+                                        }
+                                    }
+                                    for (let j = 0; j < data2.length; j++) {
+                                        if (!claimed2.has(j)) {
+                                            addHighlight('2', j, 0, 'red'); addHighlight('2', j, col2, 'red');
+                                        }
+                                    }
+
+                                    renderTable('1');
+                                    renderTable('2');
+                                };
+                                
+                                const handleCustomCopy = (event) => {
+                                    const currentDoc = event.currentTarget.ownerDocument;
+                                    const currentWin = currentDoc.defaultView;
+                                    const selection = currentWin.getSelection();
+                                
+                                    if (!selection.rangeCount || selection.isCollapsed) return;
+                                
+                                    event.preventDefault();
+                                    event.stopImmediatePropagation();
+                                
+                                    const range = selection.getRangeAt(0);
+                                    const savedRange = range.cloneRange();
+                                
+                                    const container = currentDoc.createElement('div');
+                                    container.appendChild(range.cloneContents());
+                                
+                                    let textToCopy;
+                                    if (container.querySelector('tr')) {
+                                        const rows = [];
+                                        container.querySelectorAll('tr').forEach(tr => {
+                                            const cells = [];
+                                            tr.querySelectorAll('th, td').forEach(cell => {
+                                                cells.push(cell.textContent);
+                                            });
+                                            rows.push(cells.join('\\t'));
+                                        });
+                                        textToCopy = rows.join('\\n');
+                                    } else {
+                                        textToCopy = selection.toString();
+                                    }
+                                
+                                    const textArea = currentDoc.createElement('textarea');
+                                    textArea.value = textToCopy;
+                                    textArea.style.position = 'fixed';
+                                    textArea.style.top = '-9999px';
+                                    textArea.style.left = '-9999px';
+                                    currentDoc.body.appendChild(textArea);
+                                    textArea.focus();
+                                    textArea.select();
+                                    try {
+                                        const successful = currentDoc.execCommand('copy');
+                                        if (!successful) {
+                                           console.error('execCommand was not successful');
+                                        }
+                                    } catch (err) {
+                                        console.error('无法复制: ', err);
+                                    }
+                                    currentDoc.body.removeChild(textArea);
+
+                                    // Restore the selection after the copy operation
+                                    selection.removeAllRanges();
+                                    selection.addRange(savedRange);
+                                };
+
+                                ['1', '2'].forEach(side => {
+                                    const el = elements[side];
+                                    el.fileUpload.addEventListener('change', (e) => handleFile(e, side));
+                                    
+                                    el.sheetSelect.addEventListener('change', (e) => {
+                                        loadSheetData(side, e.target.value);
+                                        if (!linkState.sheetLinked) {
+                                            const otherSide = side === '1' ? '2' : '1';
+                                            if (viewerState[otherSide].workbook) {
+                                                const otherSelect = elements[otherSide].sheetSelect;
+                                                if (e.target.selectedIndex < otherSelect.options.length) {
+                                                    otherSelect.selectedIndex = e.target.selectedIndex;
+                                                    loadSheetData(otherSide, otherSelect.value);
+                                                }
+                                            }
+                                            linkState.sheetLinked = true;
+                                        }
+                                    });
+
+                                    el.headerRowSelect.addEventListener('change', (e) => {
+                                        const selectedIndex = e.target.selectedIndex;
+                                        viewerState[side].selectedHeaderIndex = parseInt(e.target.value, 10);
+                                        renderTable(side);
+                                        updateColumnSelector(side);
+
+                                        if (!linkState.headerLinked) {
+                                            const otherSide = side === '1' ? '2' : '1';
+                                            if (viewerState[otherSide].fullData) {
+                                                const otherSelect = elements[otherSide].headerRowSelect;
+                                                if (selectedIndex < otherSelect.options.length) {
+                                                    otherSelect.selectedIndex = selectedIndex;
+                                                    viewerState[otherSide].selectedHeaderIndex = parseInt(otherSelect.value, 10);
+                                                    renderTable(otherSide);
+                                                    updateColumnSelector(otherSide);
+                                                }
+                                            }
+                                            linkState.headerLinked = true;
+                                        }
+                                    });
+
+                                    el.compareColSelect.addEventListener('change', (e) => {
+                                        const val = e.target.value;
+                                        viewerState[side].selectedCompareColIndex = val === "" ? null : parseInt(val, 10);
+                                        checkCanCompare();
+                                    });
+                                    el.tableOutput.addEventListener('copy', handleCustomCopy);
+                                });
+                                
+                                elements.compareButton.addEventListener('click', startComparison);
+
+                                // --- Resizing Logic ---
+                                const handle = document.getElementById('resize-handle');
+                                const leftPane = document.getElementById('table-output-1');
+                                
+                                function onMouseMove(e) {
+                                    const container = document.getElementById('resize-container');
+                                    let leftWidth = ((e.clientX - container.getBoundingClientRect().left) / container.offsetWidth) * 100;
+                                    if (leftWidth < 10) leftWidth = 10;
+                                    if (leftWidth > 90) leftWidth = 90;
+                                    leftPane.style.flexBasis = \`\${leftWidth}%\`;
+                                }
+
+                                function onMouseUp() {
+                                    document.removeEventListener('mousemove', onMouseMove);
+                                    document.removeEventListener('mouseup', onMouseUp);
+                                }
+
+                                handle.addEventListener('mousedown', (e) => {
+                                    e.preventDefault();
+                                    document.addEventListener('mousemove', onMouseMove);
+                                    document.addEventListener('mouseup', onMouseUp);
+                                });
+                            }
+                            
+                            initializeViewer();
+                        <\/script>
+                    </body>
+                    </html>
+                `;
+
+                viewerWindow.document.write(viewerHTML);
+                viewerWindow.document.close();
+                viewerWindow.focus();
+            } else {
+                alert('弹出窗口被阻止。请允许此站点的弹出窗口并重试。');
+            }
+        });
+    </script>
+
+</body>
+</html>
