@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
+    <div class="min-h-screen flex items-center justify-center p-8">
+        <div class="max-w-2xl w-full">
+            <div class="bg-white rounded-2xl shadow-2xl p-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2 text-center">Temperature Converter</h1>
+                <p class="text-gray-600 text-center mb-8">Convert between Fahrenheit and Celsius</p>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label for="celsius-input" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Celsius (°C)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="celsius-input" 
+                            placeholder="Enter temperature in Celsius"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none transition text-lg"
+                        />
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <button 
+                            id="convert-btn" 
+                            class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                            Convert
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <label for="fahrenheit-input" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Fahrenheit (°F)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="fahrenheit-input" 
+                            placeholder="Enter temperature in Fahrenheit"
+                            class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none transition text-lg"
+                        />
+                    </div>
+                    
+                    <div id="result-display" class="mt-6 p-4 bg-teal-50 border-2 border-teal-200 rounded-lg hidden">
+                        <p id="result-text" class="text-gray-800 font-medium text-center"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const celsiusInput = document.getElementById('celsius-input');
+            const fahrenheitInput = document.getElementById('fahrenheit-input');
+            const convertBtn = document.getElementById('convert-btn');
+            const resultDisplay = document.getElementById('result-display');
+            const resultText = document.getElementById('result-text');
+            
+            // Track which input was last modified
+            let lastModified = null; // 'celsius' or 'fahrenheit'
+            
+            // Track when inputs are modified
+            celsiusInput.addEventListener('input', () => {
+                lastModified = 'celsius';
+            });
+            
+            fahrenheitInput.addEventListener('input', () => {
+                lastModified = 'fahrenheit';
+            });
+            
+            function convertTemperature() {
+                const celsius = parseFloat(celsiusInput.value);
+                const fahrenheit = parseFloat(fahrenheitInput.value);
+                
+                resultDisplay.classList.add('hidden');
+                
+                // Determine which value to use based on last modified input
+                let sourceValue = null;
+                let sourceType = null;
+                
+                if (lastModified === 'celsius' && !isNaN(celsius) && celsiusInput.value !== '') {
+                    sourceValue = celsius;
+                    sourceType = 'celsius';
+                } else if (lastModified === 'fahrenheit' && !isNaN(fahrenheit) && fahrenheitInput.value !== '') {
+                    sourceValue = fahrenheit;
+                    sourceType = 'fahrenheit';
+                } else if (!isNaN(celsius) && celsiusInput.value !== '' && !isNaN(fahrenheit) && fahrenheitInput.value !== '') {
+                    // Both have values, use the last modified one
+                    if (lastModified === 'fahrenheit') {
+                        sourceValue = fahrenheit;
+                        sourceType = 'fahrenheit';
+                    } else {
+                        sourceValue = celsius;
+                        sourceType = 'celsius';
+                    }
+                } else if (!isNaN(celsius) && celsiusInput.value !== '') {
+                    // Only celsius has value
+                    sourceValue = celsius;
+                    sourceType = 'celsius';
+                } else if (!isNaN(fahrenheit) && fahrenheitInput.value !== '') {
+                    // Only fahrenheit has value
+                    sourceValue = fahrenheit;
+                    sourceType = 'fahrenheit';
+                }
+                
+                if (sourceValue !== null) {
+                    if (sourceType === 'celsius') {
+                        const convertedF = (sourceValue * 9/5) + 32;
+                        fahrenheitInput.value = convertedF.toFixed(2);
+                        resultText.textContent = sourceValue + '°C = ' + convertedF.toFixed(2) + '°F';
+                        resultDisplay.classList.remove('hidden');
+                        lastModified = 'celsius';
+                    } else {
+                        const convertedC = (sourceValue - 32) * 5/9;
+                        celsiusInput.value = convertedC.toFixed(2);
+                        resultText.textContent = sourceValue + '°F = ' + convertedC.toFixed(2) + '°C';
+                        resultDisplay.classList.remove('hidden');
+                        lastModified = 'fahrenheit';
+                    }
+                } else {
+                    alert('Please enter a temperature value in either Celsius or Fahrenheit.');
+                }
+            }
+            
+            convertBtn.addEventListener('click', convertTemperature);
+            
+            celsiusInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    convertTemperature();
+                }
+            });
+            
+            fahrenheitInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    convertTemperature();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
