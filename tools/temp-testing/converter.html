@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Temperature Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pyodide CDN -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 font-sans">
     <div class="min-h-screen flex items-center justify-center p-8">
@@ -12,6 +14,10 @@
             <div class="bg-white rounded-2xl shadow-2xl p-8">
                 <h1 class="text-4xl font-bold text-gray-800 mb-2 text-center">Temperature Converter</h1>
                 <p class="text-gray-600 text-center mb-8">Convert between Fahrenheit and Celsius</p>
+                
+                <div id="loading-indicator" class="text-center text-gray-500 mb-4 hidden">
+                    <p>Loading Pyodide...</p>
+                </div>
                 
                 <div class="space-y-6">
                     <div>
@@ -29,7 +35,8 @@
                     <div class="flex justify-center">
                         <button 
                             id="convert-btn" 
-                            class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                            class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled
                         >
                             Convert
                         </button>
@@ -55,81 +62,64 @@
         </div>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        let pyodide;
+        let lastModified = null;
+        
+        // Initialize Pyodide
+        async function main() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const convertBtn = document.getElementById('convert-btn');
+            
+            loadingIndicator.classList.remove('hidden');
+            
+            try {
+                pyodide = await loadPyodide();
+                
+                // Install pandas
+                await pyodide.loadPackage("pandas");
+                
+                // Load Python code from external file
+                const pythonCodeResponse = await fetch('./temperature_converter.py');
+                const pythonCode = await pythonCodeResponse.text();
+                
+                // Execute Python code
+                pyodide.runPython(pythonCode);
+                
+                // Enable convert button
+                convertBtn.disabled = false;
+                loadingIndicator.classList.add('hidden');
+                
+                // Set up event listeners
+                setupEventListeners();
+                
+            } catch (error) {
+                console.error('Error loading Pyodide:', error);
+                loadingIndicator.textContent = 'Error loading Pyodide. Please refresh the page.';
+            }
+        }
+        
+        function setupEventListeners() {
             const celsiusInput = document.getElementById('celsius-input');
             const fahrenheitInput = document.getElementById('fahrenheit-input');
             const convertBtn = document.getElementById('convert-btn');
-            const resultDisplay = document.getElementById('result-display');
-            const resultText = document.getElementById('result-text');
             
             // Track which input was last modified
-            let lastModified = null; // 'celsius' or 'fahrenheit'
-            
-            // Track when inputs are modified
             celsiusInput.addEventListener('input', () => {
                 lastModified = 'celsius';
+                pyodide.runPython(`last_modified = 'celsius'`);
             });
             
             fahrenheitInput.addEventListener('input', () => {
                 lastModified = 'fahrenheit';
+                pyodide.runPython(`last_modified = 'fahrenheit'`);
             });
             
-            function convertTemperature() {
-                const celsius = parseFloat(celsiusInput.value);
-                const fahrenheit = parseFloat(fahrenheitInput.value);
-                
-                resultDisplay.classList.add('hidden');
-                
-                // Determine which value to use based on last modified input
-                let sourceValue = null;
-                let sourceType = null;
-                
-                if (lastModified === 'celsius' && !isNaN(celsius) && celsiusInput.value !== '') {
-                    sourceValue = celsius;
-                    sourceType = 'celsius';
-                } else if (lastModified === 'fahrenheit' && !isNaN(fahrenheit) && fahrenheitInput.value !== '') {
-                    sourceValue = fahrenheit;
-                    sourceType = 'fahrenheit';
-                } else if (!isNaN(celsius) && celsiusInput.value !== '' && !isNaN(fahrenheit) && fahrenheitInput.value !== '') {
-                    // Both have values, use the last modified one
-                    if (lastModified === 'fahrenheit') {
-                        sourceValue = fahrenheit;
-                        sourceType = 'fahrenheit';
-                    } else {
-                        sourceValue = celsius;
-                        sourceType = 'celsius';
-                    }
-                } else if (!isNaN(celsius) && celsiusInput.value !== '') {
-                    // Only celsius has value
-                    sourceValue = celsius;
-                    sourceType = 'celsius';
-                } else if (!isNaN(fahrenheit) && fahrenheitInput.value !== '') {
-                    // Only fahrenheit has value
-                    sourceValue = fahrenheit;
-                    sourceType = 'fahrenheit';
-                }
-                
-                if (sourceValue !== null) {
-                    if (sourceType === 'celsius') {
-                        const convertedF = (sourceValue * 9/5) + 32;
-                        fahrenheitInput.value = convertedF.toFixed(2);
-                        resultText.textContent = sourceValue + '°C = ' + convertedF.toFixed(2) + '°F';
-                        resultDisplay.classList.remove('hidden');
-                        lastModified = 'celsius';
-                    } else {
-                        const convertedC = (sourceValue - 32) * 5/9;
-                        celsiusInput.value = convertedC.toFixed(2);
-                        resultText.textContent = sourceValue + '°F = ' + convertedC.toFixed(2) + '°C';
-                        resultDisplay.classList.remove('hidden');
-                        lastModified = 'fahrenheit';
-                    }
-                } else {
-                    alert('Please enter a temperature value in either Celsius or Fahrenheit.');
-                }
-            }
+            // Convert button click handler
+            convertBtn.addEventListener('click', () => {
+                convertTemperature();
+            });
             
-            convertBtn.addEventListener('click', convertTemperature);
-            
+            // Enter key handlers
             celsiusInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     convertTemperature();
@@ -141,7 +131,59 @@
                     convertTemperature();
                 }
             });
-        });
+        }
+        
+        function convertTemperature() {
+            const resultDisplay = document.getElementById('result-display');
+            const resultText = document.getElementById('result-text');
+            
+            // Hide result display initially
+            resultDisplay.classList.add('hidden');
+            
+            try {
+                // Get input values and perform conversion using Python
+                // Store result in js module for JavaScript access
+                pyodide.runPython(`
+# Get input values
+celsius_val = get_input_value('celsius-input')
+fahrenheit_val = get_input_value('fahrenheit-input')
+
+# Perform conversion
+result = convert_temperature(celsius_val, fahrenheit_val, last_modified)
+
+# Store result in js module for JavaScript access
+js.conversion_result = result
+                `);
+                
+                // Get result from js module
+                const result = pyodide.globals.get('js').conversion_result.toJs({
+                    dict_converter: Object.fromEntries
+                });
+                
+                if (result.success) {
+                    // Update the target input field using Python
+                    pyodide.runPython(`
+set_input_value('${result.target_id}', js.conversion_result['converted_value'])
+                    `);
+                    
+                    // Update result display
+                    resultText.textContent = result.result_text;
+                    resultDisplay.classList.remove('hidden');
+                    
+                    // Update last modified
+                    lastModified = result.last_modified;
+                    pyodide.runPython(`last_modified = '${result.last_modified}'`);
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error during conversion:', error);
+                alert('An error occurred during conversion. Please try again.');
+            }
+        }
+        
+        // Start loading Pyodide when page loads
+        main();
     </script>
 </body>
 </html>
