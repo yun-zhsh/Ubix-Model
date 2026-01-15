@@ -1,1 +1,14 @@
-# Ubix-Tools
+# Ubix Model - Financial Intelligence Tools
+
+本项目是一系列用于自动化财务分析工作流的工具集合。
+
+## 🛠 已上线工具
+
+### 1. PDF Table Extractor (`/tools/pdf-table-extractor`)
+- **功能**: 自动识别 PDF 中的表格，并允许用户编辑后导出为 Excel 文件。
+- **技术**: HTML5, PDF.js, SheetJS, Tailwind CSS.
+- **使用方法**: 直接在浏览器中打开 `index.html` 即可使用。
+
+## 🚀 未来计划
+- 集成 AI  earnings report 分析脚本。
+- 自动化财务模型构建工具。
