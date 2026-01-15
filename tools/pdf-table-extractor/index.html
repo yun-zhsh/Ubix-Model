@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Table Extractor - Launcher</title>
+    <!-- Using Tailwind CSS for styling the launcher page -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <!-- Upload Screen / Launcher -->
+    <div id="upload-screen" class="flex items-center justify-center h-screen">
+        <div class="w-full max-w-md bg-white p-8 rounded-xl shadow-lg text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">PDF Table Extractor</h1>
+            <p id="status-text" class="text-gray-500 mb-6">Upload a PDF file to open the editor in a new window.</p>
+            <div id="upload-error" class="text-red-500 font-medium mb-4 h-5"></div>
+            <input type="file" id="pdf-file" class="hidden" accept=".pdf">
+            <label for="pdf-file" id="upload-label" class="w-full inline-block cursor-pointer bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-all duration-200">
+                Choose a PDF File
+            </label>
+            <button id="open-editor-btn" class="hidden w-full cursor-pointer bg-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 mt-4">
+                Open Editor
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pdfFileInput = document.getElementById('pdf-file');
+            const uploadError = document.getElementById('upload-error');
+            const openEditorBtn = document.getElementById('open-editor-btn');
+            const uploadLabel = document.getElementById('upload-label');
+            const statusText = document.getElementById('status-text');
+
+            let loadedFile = null;
+
+            function handleFileSelect(event) {
+                uploadError.textContent = '';
+                openEditorBtn.classList.add('hidden');
+                const file = event.target.files[0];
+
+                if (file && file.type === 'application/pdf') {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        loadedFile = {
+                            data: e.target.result,
+                            name: file.name
+                        };
+                        statusText.textContent = `File "${file.name}" is ready.`;
+                        openEditorBtn.classList.remove('hidden');
+                        uploadLabel.textContent = 'Choose a Different File';
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    if (file) {
+                        uploadError.textContent = 'Please select a valid PDF file.';
+                    }
+                    loadedFile = null;
+                }
+                pdfFileInput.value = '';
+            }
+
+            function openEditor() {
+                if (!loadedFile) {
+                    uploadError.textContent = 'Please select a file first.';
+                    return;
+                }
+
+                const editorWindow = window.open('', '_blank', 'width=1200,height=800,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no');
+
+                if (!editorWindow) {
+                    uploadError.textContent = 'Please allow pop-ups for this site.';
+                    return;
+                }
+
+                editorWindow.document.open();
+                editorWindow.document.write(getEditorHtml());
+                editorWindow.document.close();
+
+                editorWindow.onload = () => {
+                   if (editorWindow.loadPdfData) {
+                        editorWindow.loadPdfData(loadedFile.data, loadedFile.name);
+                   }
+                };
+                if (editorWindow.document.readyState === 'complete' && editorWindow.loadPdfData) {
+                     editorWindow.loadPdfData(loadedFile.data, loadedFile.name);
+                }
+            }
+            
+            pdfFileInput.addEventListener('change', handleFileSelect);
+            openEditorBtn.addEventListener('click', openEditor);
+
+            function getEditorHtml() {
+                return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" xintegrity="sha512-q+4liFwdPC/bNdhUpZx6aXLTIiYJiopk4x5eDJYgxjPyJ2B2bqrkvVhA7ClKjvI09sFh2ecKNpqqM3C7k6M5BA==" crossorigin="anonymous" referrerpolicy="no-referrer"><\/script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
+    <style>
+        html, body { overflow: hidden; height: 100%; }
+        #pdf-viewer::-webkit-scrollbar, #excel-container::-webkit-scrollbar { width: 8px; }
+        #pdf-viewer::-webkit-scrollbar-track, #excel-container::-webkit-scrollbar-track { background: #f1f1f1; }
+        #pdf-viewer::-webkit-scrollbar-thumb, #excel-container::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        #pdf-viewer::-webkit-scrollbar-thumb:hover, #excel-container::-webkit-scrollbar-thumb:hover { background: #555; }
+        #excel-container { height: 100%; overflow: auto; }
+        #excel-table { border-collapse: collapse; width: 100%; }
+        #excel-table thead th { position: sticky; top: 0; z-index: 2; background-color: #f9fafb; }
+        #excel-table tbody th { position: sticky; left: 0; z-index: 1; background-color: #f9fafb; }
+        #excel-table th, #excel-table td { border: 1px solid #d1d5db; padding: 0.5rem; min-width: 120px; white-space: nowrap; }
+        .pdf-page-canvas { border: 1px solid #e5e7eb; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); max-width: 100%; height: auto; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <div class="flex flex-col h-screen w-screen">
+        <header class="bg-white shadow-md p-2 flex items-center justify-between z-10 flex-shrink-0">
+             <div class="flex items-center min-w-0">
+                 <button id="close-button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg mr-4 transition-colors">
+                     Close
+                 </button>
+                 <span id="file-name" class="text-gray-700 font-semibold truncate" title="Filename">Loading file...</span>
+             </div>
+             <div class="flex items-center space-x-2">
+                 <div id="loader" class="hidden loader"></div>
+                 <button id="extract-button" class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    Extract Tables
+                 </button>
+                 <button id="save-excel-button" class="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    Save Excel
+                 </button>
+             </div>
+        </header>
+        <main class="flex-grow flex w-full h-full overflow-hidden">
+            <div class="w-1/2 flex flex-col bg-gray-200">
+                <div class="flex-shrink-0 bg-white border-b border-gray-300 p-2 flex items-center justify-center space-x-2 shadow-sm z-10">
+                    <button id="prev-page" title="Previous Page" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">&#9650;</button>
+                    <div class="flex items-center text-sm">
+                        <input type="number" id="page-num-input" class="w-16 text-center rounded-md border-gray-300 focus:ring-blue-500 focus:border-blue-500" min="1">
+                        <span class="mx-2">/</span>
+                        <span id="total-pages">0</span>
+                    </div>
+                    <button id="next-page" title="Next Page" class="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">&#9660;</button>
+                </div>
+                <div id="pdf-viewer" class="flex-grow p-4 overflow-auto">
+                    <div id="pdf-pages" class="flex flex-col items-center"></div>
+                </div>
+            </div>
+            <div class="w-1/2 border-l border-gray-300 bg-white flex flex-col">
+                <div id="excel-container" class="flex-grow overflow-auto">
+                    <table id="excel-table"></table>
+                </div>
+                <div id="worksheet-tabs" class="flex-shrink-0 border-t border-gray-300 p-1 flex space-x-1 bg-gray-50 overflow-x-auto">
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof pdfjsLib === 'undefined') {
+                document.body.innerHTML = '<h1 style="color:red; text-align:center; margin-top: 50px;">Error: PDF.js library failed to load. Please check your internet connection or ad-blocker.</h1>';
+            } else {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = \`https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js\`;
+
+                const extractButton = document.getElementById('extract-button');
+                const saveExcelButton = document.getElementById('save-excel-button');
+                const fileNameSpan = document.getElementById('file-name');
+                const pdfPagesContainer = document.getElementById('pdf-pages');
+                const excelTable = document.getElementById('excel-table');
+                const loader = document.getElementById('loader');
+                const prevPageBtn = document.getElementById('prev-page');
+                const nextPageBtn = document.getElementById('next-page');
+                const pageNumInput = document.getElementById('page-num-input');
+                const totalPagesSpan = document.getElementById('total-pages');
+                const pdfViewer = document.getElementById('pdf-viewer');
+                const worksheetTabsContainer = document.getElementById('worksheet-tabs');
+                
+                let pdfInstance = null;
+                let currentPageNum = 1;
+                let worksheets = [];
+                let activeSheetIndex = 0;
+                let isFirstExtractionDone = false;
+
+                function renderTabs() {
+                    worksheetTabsContainer.innerHTML = '';
+                    worksheets.forEach((sheet, index) => {
+                        const tab = document.createElement('button');
+                        tab.textContent = sheet.name;
+                        tab.className = 'py-1 px-3 text-sm rounded-md border transition-colors whitespace-nowrap';
+                        if (index === activeSheetIndex) {
+                            tab.className += ' bg-blue-500 text-white border-blue-600';
+                        } else {
+                            tab.className += ' bg-white hover:bg-gray-100 border-gray-300';
+                        }
+                        tab.onclick = () => {
+                            activeSheetIndex = index;
+                            updateDisplay();
+                        };
+                        worksheetTabsContainer.appendChild(tab);
+                    });
+                }
+
+                function renderActiveSheetGrid() {
+                    if (worksheets.length === 0 || !worksheets[activeSheetIndex]) {
+                         excelTable.innerHTML = '';
+                         return;
+                    }
+                    const activeSheetData = worksheets[activeSheetIndex].data;
+                    const rows = activeSheetData.length > 0 ? activeSheetData.length : 50;
+                    const cols = activeSheetData.length > 0 ? activeSheetData.reduce((max, row) => Math.max(max, row.length), 0) : 26;
+                    
+                    let tableHTML = '<thead><tr><th></th>';
+                    for (let j = 0; j < cols; j++) {
+                        let colName = ''; let n = j;
+                        do { colName = String.fromCharCode(65 + (n % 26)) + colName; n = Math.floor(n / 26) - 1; } while (n >= 0);
+                        tableHTML += \`<th>\${colName}</th>\`;
+                    }
+                    tableHTML += '</tr></thead><tbody>';
+                    for (let i = 0; i < rows; i++) {
+                        tableHTML += \`<tr><th>\${i + 1}</th>\`;
+                        for (let j = 0; j < cols; j++) {
+                            const cellData = activeSheetData[i] && activeSheetData[i][j] ? activeSheetData[i][j] : { text: '', indent: 0 };
+                            const style = cellData.indent > 0 ? \`style="padding-left: \${cellData.indent * 1.5 + 0.5}em;"\` : '';
+                            tableHTML += \`<td contenteditable="true" \${style}>\${cellData.text}</td>\`;
+                        }
+                        tableHTML += '</tr>';
+                    }
+                    tableHTML += '</tbody>';
+                    excelTable.innerHTML = tableHTML;
+                }
+                
+                function updateDisplay() {
+                    renderTabs();
+                    renderActiveSheetGrid();
+                }
+
+                function initializeEditor() {
+                    worksheets = [{ name: 'Sheet 1', data: [] }];
+                    activeSheetIndex = 0;
+                    isFirstExtractionDone = false;
+                    updateDisplay();
+                }
+
+                async function renderPdf(typedarray) {
+                    try {
+                        loader.classList.remove('hidden');
+                        extractButton.disabled = true;
+                        saveExcelButton.disabled = true;
+
+                        const loadingTask = pdfjsLib.getDocument(typedarray);
+                        pdfInstance = await loadingTask.promise;
+                        totalPagesSpan.textContent = pdfInstance.numPages;
+                        pageNumInput.max = pdfInstance.numPages;
+                        pdfPagesContainer.innerHTML = '';
+                        
+                        const renderPromises = [];
+                        for (let i = 1; i <= pdfInstance.numPages; i++) {
+                            const page = await pdfInstance.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            canvas.id = \`page-canvas-\${i}\`;
+                            canvas.className = 'pdf-page-canvas';
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            pdfPagesContainer.appendChild(canvas);
+                            renderPromises.push(page.render({ canvasContext: context, viewport: viewport }).promise);
+                        }
+
+                        await Promise.all(renderPromises);
+
+                        currentPageNum = 1;
+                        updateNavState();
+                        setupScrollObserver();
+                        
+                        loader.classList.add('hidden');
+                        extractButton.disabled = false;
+
+                    } catch (error) {
+                        console.error('Error rendering PDF:', error);
+                        loader.classList.add('hidden');
+                        document.body.innerHTML = \`<div style="padding: 2rem; text-align: center;"><h1 style="color:red;">Could not render the PDF.</h1><p>It might be corrupted or unsupported. Please close this window and try another file.</p></div>\`;
+                    }
+                }
+                
+                async function extractTables() {
+                    if (!pdfInstance) return;
+                    loader.classList.remove('hidden');
+                    extractButton.disabled = true;
+                    saveExcelButton.disabled = true;
+
+                    const page = await pdfInstance.getPage(currentPageNum);
+                    const textContent = await page.getTextContent();
+                    const pageTextItems = textContent.items.filter(item => item.str.trim().length > 0);
+
+                    // 1. Group text into lines
+                    const lines = [];
+                    if (pageTextItems.length > 0) {
+                        const sortedItems = [...pageTextItems].sort((a, b) => b.transform[5] - a.transform[5]);
+                        let currentLine = [sortedItems[0]];
+                        for (let i = 1; i < sortedItems.length; i++) {
+                            const item = sortedItems[i];
+                            const avgHeight = currentLine.reduce((sum, li) => sum + li.height, 0) / currentLine.length;
+                            if (Math.abs(item.transform[5] - currentLine[0].transform[5]) < avgHeight * 0.7) {
+                                currentLine.push(item);
+                            } else {
+                                lines.push(currentLine.sort((a, b) => a.transform[4] - b.transform[4]));
+                                currentLine = [item];
+                            }
+                        }
+                        lines.push(currentLine.sort((a, b) => a.transform[4] - b.transform[4]));
+                    }
+                    
+                    if (lines.length < 5) {
+                        const extractedData = [];
+                        if (!isFirstExtractionDone) {
+                            worksheets[0].data = extractedData;
+                            isFirstExtractionDone = true;
+                        } else {
+                            worksheets.push({ name: \`Sheet \${worksheets.length + 1}\`, data: extractedData });
+                            activeSheetIndex = worksheets.length - 1;
+                        }
+                        updateDisplay();
+                        loader.classList.add('hidden');
+                        extractButton.disabled = false;
+                        saveExcelButton.disabled = worksheets.some(ws => ws.data.length > 0);
+                        return;
+                    }
+                    
+                    const avgCharWidth = pageTextItems.reduce((sum, item) => item.str.length > 0 ? sum + (item.width / item.str.length) : sum, 0) / pageTextItems.filter(item => item.str.length > 0).length || 5;
+                    const preMergedLines = lines.map(line => {
+                        if (line.length < 2) return line;
+                        const newLine = [];
+                        let currentItem = JSON.parse(JSON.stringify(line[0]));
+                        for (let i = 1; i < line.length; i++) {
+                            const nextItem = line[i];
+                            const gap = nextItem.transform[4] - (currentItem.transform[4] + currentItem.width);
+                            if (gap >= 0 && gap < avgCharWidth * 1.5) {
+                                currentItem.str += ' ' + nextItem.str;
+                                currentItem.width = (nextItem.transform[4] + nextItem.width) - currentItem.transform[4];
+                            } else {
+                                newLine.push(currentItem);
+                                currentItem = JSON.parse(JSON.stringify(nextItem));
+                            }
+                        }
+                        newLine.push(currentItem);
+                        return newLine;
+                    });
+
+
+                    // 3. Deduce column boundaries from the most common row structure
+                    const HEADER_ROWS_TO_SKIP = 4;
+                    const sampleLines = preMergedLines.slice(HEADER_ROWS_TO_SKIP);
+                    const gapClusters = {};
+
+                    for (const line of sampleLines) {
+                        if(line.length < 2) continue;
+                        const gaps = [];
+                        for (let i = 0; i < line.length - 1; i++) {
+                            const gapStart = line[i].transform[4] + line[i].width;
+                            const gapEnd = line[i+1].transform[4];
+                            gaps.push((gapStart + gapEnd) / 2);
+                        }
+                        
+                        const key = gaps.map(g => Math.round(g / (avgCharWidth * 5))).join('-');
+                        if (!gapClusters[key]) gapClusters[key] = { count: 0, gaps: [] };
+                        gapClusters[key].count++;
+                        gapClusters[key].gaps.push(gaps);
+                    }
+
+                    let dominantClusterKey = null;
+                    let maxCount = 0;
+                    for (const key in gapClusters) {
+                        if (gapClusters[key].count > maxCount) {
+                            maxCount = gapClusters[key].count;
+                            dominantClusterKey = key;
+                        }
+                    }
+
+                    let columnBoundaries = [];
+                    if (dominantClusterKey) {
+                        const dominantGaps = gapClusters[dominantClusterKey].gaps;
+                        const avgGaps = [];
+                        for (let i = 0; i < dominantGaps[0].length; i++) {
+                            avgGaps.push(dominantGaps.reduce((sum, g) => sum + g[i], 0) / dominantGaps.length);
+                        }
+                        columnBoundaries = [0, ...avgGaps];
+                    } else if (preMergedLines.length > 0 && preMergedLines[0].length > 0) {
+                        columnBoundaries = preMergedLines[0].map(item => item.transform[4]);
+                    }
+
+                    // 4. Place items and calculate indentation
+                    const extractedData = [];
+                    const firstColBoundary = columnBoundaries.length > 1 ? columnBoundaries[1] : Infinity;
+                    const firstColSampleItems = sampleLines.flat().filter(item => item.transform[4] < firstColBoundary);
+                    const minX = firstColSampleItems.length > 0 ? Math.min(...firstColSampleItems.map(item => item.transform[4])) : 0;
+
+                    for (const line of preMergedLines) {
+                        const rowDataWithObjects = new Array(columnBoundaries.length).fill(null).map(() => ({ text: '', firstItemX: Infinity }));
+                        for (const item of line) {
+                            const itemCenter = item.transform[4] + item.width / 2;
+                            let colIndex = -1;
+                            for (let i = columnBoundaries.length - 1; i >= 0; i--) {
+                                if (itemCenter > columnBoundaries[i]) {
+                                    colIndex = i;
+                                    break;
+                                }
+                            }
+                            if (colIndex !== -1) {
+                                rowDataWithObjects[colIndex].text = (rowDataWithObjects[colIndex].text + ' ' + item.str).trim();
+                                if(item.transform[4] < rowDataWithObjects[colIndex].firstItemX) {
+                                    rowDataWithObjects[colIndex].firstItemX = item.transform[4];
+                                }
+                            }
+                        }
+                        
+                        const finalRowData = rowDataWithObjects.map((cell, index) => {
+                            let indent = 0;
+                            if (index === 0 && cell.firstItemX !== Infinity && minX > 0) {
+                                const indentAmount = cell.firstItemX - minX;
+                                if (indentAmount > avgCharWidth) { 
+                                    indent = Math.round(indentAmount / (avgCharWidth * 3));
+                                }
+                            }
+                            return { text: cell.text, indent: indent };
+                        });
+
+                         if (finalRowData.some(cell => cell.text.trim() !== '')) {
+                             extractedData.push(finalRowData);
+                        }
+                    }
+
+                    if (!isFirstExtractionDone) {
+                        worksheets[0].data = extractedData;
+                        activeSheetIndex = 0;
+                        isFirstExtractionDone = true;
+                    } else {
+                        const newSheet = { name: \`Sheet \${worksheets.length + 1}\`, data: extractedData };
+                        worksheets.push(newSheet);
+                        activeSheetIndex = worksheets.length - 1;
+                    }
+                    
+                    updateDisplay();
+                    
+                    loader.classList.add('hidden');
+                    extractButton.disabled = false;
+                    saveExcelButton.disabled = false;
+                }
+
+                function saveAsExcel() {
+                    if (worksheets.length === 0 || worksheets.every(ws => ws.data.length === 0)) {
+                        alert('No data has been extracted to save.');
+                        return;
+                    }
+                    
+                    const wb = XLSX.utils.book_new();
+
+                    worksheets.forEach(sheet => {
+                        if (sheet.data.length > 0) {
+                            const ws_data = sheet.data.map(row => 
+                                row.map(cell => {
+                                    const prefix = '  '.repeat(cell.indent); 
+                                    return prefix + cell.text;
+                                })
+                            );
+                            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                            XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+                        }
+                    });
+
+                    if (wb.SheetNames.length === 0) {
+                        alert('All worksheets are empty. Nothing to save.');
+                        return;
+                    }
+                    
+                    const originalFileName = fileNameSpan.textContent || 'extracted_tables.pdf';
+                    const baseName = originalFileName.replace(/\\.pdf$/i, '');
+                    const finalFileName = \`\${baseName}_extracted.xlsx\`;
+
+                    XLSX.writeFile(wb, finalFileName);
+                }
+
+                function updateNavState() {
+                    if (!pdfInstance) return;
+                    pageNumInput.value = currentPageNum;
+                    prevPageBtn.disabled = (currentPageNum <= 1);
+                    nextPageBtn.disabled = (currentPageNum >= pdfInstance.numPages);
+                }
+
+                function goToPage(num) {
+                    if (!pdfInstance || num < 1 || num > pdfInstance.numPages) {
+                        pageNumInput.value = currentPageNum;
+                        return;
+                    }
+                    const targetPage = document.getElementById(\`page-canvas-\${num}\`);
+                    if (targetPage) {
+                        targetPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+
+                function setupScrollObserver() {
+                    const options = {
+                        root: pdfViewer,
+                        rootMargin: '-50% 0px -50% 0px',
+                        threshold: 0
+                    };
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const pageNum = parseInt(entry.target.id.split('-')[2]);
+                                currentPageNum = pageNum;
+                                updateNavState();
+                            }
+                        });
+                    }, options);
+                    document.querySelectorAll('.pdf-page-canvas').forEach(canvas => observer.observe(canvas));
+                }
+
+                window.loadPdfData = function(arrayBuffer, fileName) {
+                    fileNameSpan.textContent = fileName;
+                    fileNameSpan.title = fileName;
+                    const typedarray = new Uint8Array(arrayBuffer);
+                    renderPdf(typedarray);
+                };
+
+                document.getElementById('close-button').addEventListener('click', () => window.close());
+                extractButton.addEventListener('click', extractTables);
+                saveExcelButton.addEventListener('click', saveAsExcel);
+                
+                prevPageBtn.addEventListener('click', () => { if (currentPageNum > 1) goToPage(currentPageNum - 1); });
+                nextPageBtn.addEventListener('click', () => { if (currentPageNum < pdfInstance.numPages) goToPage(currentPageNum + 1); });
+                pageNumInput.addEventListener('change', () => goToPage(parseInt(pageNumInput.value, 10)));
+                pageNumInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') e.target.blur(); });
+                
+                initializeEditor();
+            }
+        });
+    <\/script>
+</body>
+</html>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
